@@ -52,45 +52,8 @@ git clone [https://github.com/](https://github.com/)[YOUR_USERNAME]/[YOUR_REPO_N
 
 Install Dependencies: rosdep will automatically find all required packages (like Nav2, Gazebo plugins, etc.) defined in the package.xml files.
 
-# Initialize rosdep (only need to do this once)
-sudo rosdep init
-rosdep update
 
-# Install all dependencies from your workspace root (`~/capstone_ws`)
-rosdep install --from-paths src --ignore-src -r -y
-
-
-Build the workspace:
-
-# From your workspace root (`~/capstone_ws`)
-colcon build --symlink-install
-
-
-3. Usage
-
-All project functionalities are launched using ros2 launch.
-
-Source your workspace:
-In every new terminal, you must source the overlay to find your packages.
-
-source ~/capstone_ws/install/setup.bash
-
-
-Run the MVP Simulation (Geometric Centering):
-This launch file starts Gazebo, RViz, Nav2, and our simple "Geometric Centering" node.
-
-# Replace [your_package_name] and [mvp_sim.launch.py] with your actual file names
-ros2 launch [your_package_name] mvp_sim.launch.py
-
-
-Run the Enhanced Simulation (LIO):
-This launch file starts the simulation but swaps the simple controller for the advanced LIO package.
-
-# Replace [your_package_name] and [enhanced_lio_sim.launch.py]
-ros2 launch [your_package_name] enhanced_lio_sim.launch.py
-
-
-4. Citing This Project
+3. Citing This Project
 
 If you use this work for academic purposes, please use the following citation.
 
@@ -110,6 +73,6 @@ BibTeX
 }
 
 
-5. License
+4. License
 
 This project is licensed under the Apache 2.0 License. See the LICENSE file for full details.
