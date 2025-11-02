@@ -1,3 +1,15 @@
+# ROS 2 Colcon Workspace
+# These are critical to ignore
+install/
+log/
+
+# IDE Folders
+.vscode/
+.idea/
+
+
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
