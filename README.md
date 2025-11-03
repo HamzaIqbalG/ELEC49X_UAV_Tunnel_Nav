@@ -3,7 +3,7 @@ ELEC 49X: UAV Self-Navigation in Tunnels
 Group 27: Hamza Iqbal, Walker Yee, Muhammad Saad Iqbal
 
 
-This repository contains the complete ROS 2 software stack for the Queen's University ELEC 490 Capstone Project, "UAV Self-Navigation in Tunnels."
+This repository contains the complete ROS 2 software stack for the Queen's University ELEC 49X Capstone Project, "UAV Self-Navigation in Tunnels."
 
 <!--
 ACTION REQUIRED: I will create a  high-quality GIF of the Gazebo simulation
@@ -53,26 +53,6 @@ git clone [https://github.com/](https://github.com/)[YOUR_USERNAME]/[YOUR_REPO_N
 Install Dependencies: rosdep will automatically find all required packages (like Nav2, Gazebo plugins, etc.) defined in the package.xml files.
 
 
-3. Citing This Project
-
-If you use this work for academic purposes, please use the following citation.
-
-CITATION.cff (Preferred)
-
-A CITATION.cff file is included in this repository for easy import into citation managers like Zotero. GitHub also provides a "Cite this repository" button on the main page.
-
-BibTeX
-
-@software{UAV_Self_Navigation_2025,
-  author = {Iqbal, Hamza and Yee, Walker and Iqbal, Muhammad Saad},
-  title = {{UAV Self-Navigation in Tunnels: A ROS 2 Implementation}},
-  month = {October},
-  year = {2025},
-  publisher = {GitHub},
-  url = {[https://github.com/](https://github.com/)[HamzaIqbalG]/[ELEC49X_UAV_Tunnel_Nav]}
-}
-
-
-4. License
+3. License
 
 This project is licensed under the Apache 2.0 License. See the LICENSE file for full details.
