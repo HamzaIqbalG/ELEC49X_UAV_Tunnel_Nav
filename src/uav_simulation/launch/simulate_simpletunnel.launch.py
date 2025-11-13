@@ -1,22 +1,18 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
+from launch.actions import ExecuteProcess
 from launch_ros.substitutions import FindPackageShare
 import os
 
 
-def launch_setup(context, *args, **kwargs):
+def generate_launch_description():
     # Get the package share directory
     pkg_share = FindPackageShare(package='uav_simulation').find('uav_simulation')
     
+    # World file path - simpletunnel (SDF format for Gazebo Fortress)
+    world_file = os.path.join(pkg_share, 'worlds', 'simpletunnel.sdf')
+    
     # Model path
     model_path = os.path.join(pkg_share, 'models')
-    
-    # Get world name from launch argument
-    world_name = context.launch_configurations.get('world', 'tunnel_world')
-    
-    # Determine world file path based on name
-    # Both worlds use .sdf format for Gazebo Fortress
-    world_file = os.path.join(pkg_share, 'worlds', f'{world_name}.sdf')
     
     # Gazebo Fortress (Ignition Gazebo 6) uses 'ign gazebo' command
     gazebo_args = [
@@ -31,24 +27,11 @@ def launch_setup(context, *args, **kwargs):
     else:
         env['IGN_GAZEBO_RESOURCE_PATH'] = model_path
     
-    return [
+    return LaunchDescription([
+        # Launch Gazebo Fortress with simpletunnel world
         ExecuteProcess(
             cmd=['ign', 'gazebo'] + gazebo_args,
             output='screen',
             env=env
         ),
-    ]
-
-
-def generate_launch_description():
-    # Declare launch argument for world selection
-    world_arg = DeclareLaunchArgument(
-        'world',
-        default_value='tunnel_world',
-        description='World file to load: tunnel_world or simpletunnel'
-    )
-    
-    return LaunchDescription([
-        world_arg,
-        OpaqueFunction(function=launch_setup)
     ])

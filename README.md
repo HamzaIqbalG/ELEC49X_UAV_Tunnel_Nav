@@ -32,7 +32,9 @@ Prerequisites
 
 Ubuntu 22.04 LTS
 
-ROS 2 Humble (Desktop-Full install): This is essential as it includes Gazebo and RViz.
+ROS 2 Humble (Desktop-Full install)
+
+Gazebo Fortress: Required for simulation (install separately if not included)
 
 colcon build tools: sudo apt install python3-colcon-common-extensions
 
@@ -90,17 +92,30 @@ ros2 topic list
 ros2 topic echo /test_topic
 ```
 
-**Launch Gazebo Simulation (world only):**
+**Launch Gazebo Simulation:**
+
+Launch default tunnel world:
 ```bash
 ros2 launch uav_simulation simulate.launch.py
+```
+
+Launch simpletunnel world:
+```bash
+ros2 launch uav_simulation simulate.launch.py world:=simpletunnel
+# OR use the dedicated launch file:
+ros2 launch uav_simulation simulate_simpletunnel.launch.py
 ```
 
 **Project Structure:**
 
 - `src/uav_simulation/` - Gazebo simulation package
   - `models/basic_drone/` - Basic quadrotor UAV model (for future use)
-  - `worlds/tunnel_world.world` - Simple tunnel environment
-  - `launch/simulate.launch.py` - Launch file for Gazebo simulation
+  - `worlds/` - Gazebo Fortress world files (SDF format)
+    - `tunnel_world.sdf` - Simple rectangular tunnel environment
+    - `simpletunnel.sdf` - Tunnel world with Fuel model
+  - `launch/` - Launch files
+    - `simulate.launch.py` - Launch file with world selection (default: tunnel_world)
+    - `simulate_simpletunnel.launch.py` - Dedicated launch file for simpletunnel world
 - `src/uav_bringup/` - Launch files and ROS 2 nodes
   - `launch/test_workspace.launch.py` - Test node launch file
   - `src/test_node.cpp` - Simple test node for workspace verification

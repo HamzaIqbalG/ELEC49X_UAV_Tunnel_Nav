@@ -167,17 +167,33 @@ ros2 topic echo /test_topic   # See messages
 
 ### 2. Launch Gazebo Simulation
 
-**Purpose:** Run the Gazebo simulator with the tunnel world.
+**Purpose:** Run the Gazebo simulator with a world.
 
+**Option A: Launch default tunnel world:**
 ```bash
 source install/setup.bash
 ros2 launch uav_simulation simulate.launch.py
 ```
 
+**Option B: Launch simpletunnel world:**
+```bash
+source install/setup.bash
+ros2 launch uav_simulation simulate.launch.py world:=simpletunnel
+```
+
+**Option C: Use dedicated simpletunnel launch file:**
+```bash
+source install/setup.bash
+ros2 launch uav_simulation simulate_simpletunnel.launch.py
+```
+
 **What you should see:**
-- Gazebo GUI opens
-- Tunnel world loads (gray rectangular tunnel)
-- Some ALSA/audio warnings (harmless, can be ignored)
+- Gazebo Fortress GUI opens (using `gz sim`)
+- World loads (tunnel_world: gray rectangular tunnel, simpletunnel: tunnel with Fuel model)
+
+**Available Worlds:**
+- `tunnel_world` - Simple rectangular tunnel (default)
+- `simpletunnel` - Tunnel world with Fuel model
 
 **Stop:** Close Gazebo window or press `Ctrl+C`
 
