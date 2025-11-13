@@ -40,20 +40,94 @@ rosdep tool: sudo apt install python3-rosdep
 
 Installation & Build
 
-Create a new workspace:
+**Quick Setup (Recommended):**
 
-mkdir -p ~/capstone_ws/src
-cd ~/capstone_ws/
+```bash
+# Make sure ROS 2 Humble is sourced
+source /opt/ros/humble/setup.bash
+
+# Run the setup script
+cd /path/to/ELEC49X_UAV_Tunnel_Nav
+./setup_workspace.sh
+
+# Source the workspace
+source install/setup.bash
+```
+
+**Manual Setup:**
+
+1. Source ROS 2 Humble:
+   ```bash
+   source /opt/ros/humble/setup.bash
+   ```
+
+2. Install dependencies:
+   ```bash
+   cd /path/to/ELEC49X_UAV_Tunnel_Nav
+   rosdep install --from-paths src --ignore-src -r -y
+   ```
+
+3. Build the workspace:
+   ```bash
+   colcon build --symlink-install
+   ```
+
+4. Source the workspace:
+   ```bash
+   source install/setup.bash
+   ```
+
+**Testing the Workspace:**
+
+**Test ROS 2 Integration:**
+```bash
+# Launch the test node
+ros2 launch uav_bringup test_workspace.launch.py
+
+# In another terminal, verify topics are working
+source install/setup.bash
+ros2 topic list
+ros2 topic echo /test_topic
+```
+
+**Launch Gazebo Simulation (world only):**
+```bash
+ros2 launch uav_simulation simulate.launch.py
+```
+
+**Project Structure:**
+
+- `src/uav_simulation/` - Gazebo simulation package
+  - `models/basic_drone/` - Basic quadrotor UAV model (for future use)
+  - `worlds/tunnel_world.world` - Simple tunnel environment
+  - `launch/simulate.launch.py` - Launch file for Gazebo simulation
+- `src/uav_bringup/` - Launch files and ROS 2 nodes
+  - `launch/test_workspace.launch.py` - Test node launch file
+  - `src/test_node.cpp` - Simple test node for workspace verification
+  - `src/basic_node.cpp` - Basic UAV node (for future use with drone)
+- `src/tunnel_controller/` - Control algorithms (to be implemented)
+- `src/tunnel_perception/` - Perception and localization (to be implemented)
+- `src/msgs/` - Custom message definitions (to be implemented)
 
 
-Clone the repository:
+3. Development Guide
 
-git clone [https://github.com/](https://github.com/)[YOUR_USERNAME]/[YOUR_REPO_NAME].git src/uav_project
+For detailed instructions on how to develop on this project, see [DEVELOPMENT_GUIDE.md](DEVELOPMENT_GUIDE.md).
 
+**Quick Start for Development:**
+```bash
+# Daily workflow - run these every time you start working
+source /opt/ros/humble/setup.bash
+source install/setup.bash
 
-Install Dependencies: rosdep will automatically find all required packages (like Nav2, Gazebo plugins, etc.) defined in the package.xml files.
+# Make changes to code, then rebuild
+colcon build --symlink-install --packages-select <package_name>
+source install/setup.bash
 
+# Test your changes
+ros2 launch uav_bringup test_workspace.launch.py
+```
 
-3. License
+4. License
 
 This project is licensed under the Apache 2.0 License. See the LICENSE file for full details.
