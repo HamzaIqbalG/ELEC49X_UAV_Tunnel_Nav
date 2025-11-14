@@ -1,7 +1,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <sensor_msgs/msg/imu.hpp>
-#include <geometry_msgs/msg/twist.hpp>
 
 class BasicUAVNode : public rclcpp::Node
 {
@@ -19,9 +18,8 @@ public:
       "/uav/imu", 10,
       std::bind(&BasicUAVNode::imu_callback, this, std::placeholders::_1));
 
-    // Publisher for control commands (placeholder)
-    cmd_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>(
-      "/uav/cmd_vel", 10);
+    // Note: X3 model uses motor speed commands, not velocity commands
+    // Use motor_speed_controller for controlling the drone
 
     RCLCPP_INFO(this->get_logger(), "Basic UAV Node started");
     RCLCPP_INFO(this->get_logger(), "Subscribed to /uav/scan and /uav/imu");
@@ -44,7 +42,6 @@ private:
 
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_subscription_;
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_subscription_;
-  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_publisher_;
 };
 
 int main(int argc, char * argv[])
