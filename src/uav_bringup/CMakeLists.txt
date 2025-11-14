@@ -48,10 +48,18 @@ ament_target_dependencies(motor_speed_controller
   actuator_msgs
 )
 
+# Manual control node (keyboard control for drone)
+add_executable(manual_control src/manual_control.cpp)
+ament_target_dependencies(manual_control
+  rclcpp
+  actuator_msgs
+)
+
 install(TARGETS
   basic_uav_node
   test_node
   motor_speed_controller
+  manual_control
   DESTINATION lib/${PROJECT_NAME}
 )
 

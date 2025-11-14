@@ -1,6 +1,7 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction, TimerAction
 from launch.conditions import IfCondition
+from launch.substitutions import PythonExpression
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 import os
@@ -141,8 +142,9 @@ def launch_setup(context, *args, **kwargs):
             ]
         ),
         
-        # Optional: Motor speed controller (if enabled)
+        # Optional: Motor speed controller (automatic hover)
         # This publishes motor speed commands for hover
+        # Only enable if controller is enabled AND manual control is NOT enabled
         TimerAction(
             period=10.0,  # Wait 10 seconds for everything to initialize
             actions=[
@@ -151,9 +153,32 @@ def launch_setup(context, *args, **kwargs):
                     executable='motor_speed_controller',
                     name='motor_speed_controller',
                     condition=IfCondition(
-                        context.launch_configurations.get('enable_controller', 'false')
-                    ),
+                        # Check both conditions: controller enabled AND manual control disabled
+                        PythonExpression([
+                            "'", context.launch_configurations.get('enable_controller', 'false'), "' == 'true'",
+                            " and ",
+                            "'", context.launch_configurations.get('manual_control', 'false'), "' == 'false'"
+                        ])
+                    ) if context.launch_configurations.get('enable_controller', 'false') == 'true' and context.launch_configurations.get('manual_control', 'false') == 'false' else None,
                     output='screen'
+                ),
+            ]
+        ),
+        
+        # Optional: Manual control (keyboard control - overrides automatic controller)
+        # NOTE: Keyboard input is captured in the terminal where ros2 launch is run
+        TimerAction(
+            period=10.0,  # Wait 10 seconds for everything to initialize
+            actions=[
+                Node(
+                    package='uav_bringup',
+                    executable='manual_control',
+                    name='manual_control',
+                    condition=IfCondition(
+                        context.launch_configurations.get('manual_control', 'false')
+                    ),
+                    output='screen',
+                    emulate_tty=True  # Ensure stdin is connected for keyboard input
                 ),
             ]
         ),
@@ -182,9 +207,17 @@ def generate_launch_description():
         description='Enable motor speed controller to make drone hover'
     )
     
+    # Declare launch argument for manual control mode
+    manual_control_arg = DeclareLaunchArgument(
+        'manual_control',
+        default_value='false',
+        description='Enable manual keyboard control (overrides automatic controller)'
+    )
+    
     return LaunchDescription([
         world_arg,
         model_arg,
         controller_arg,
+        manual_control_arg,
         OpaqueFunction(function=launch_setup)
     ])

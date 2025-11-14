@@ -20,17 +20,22 @@ public:
   : Node("motor_speed_controller")
   {
     // Declare ROS parameter for motor speed (can be changed at runtime)
-    this->declare_parameter<double>("hover_speed", 600.0);
+    this->declare_parameter<double>("hover_speed", 662.0);  // Updated to user's perfect value
     
-    // Publisher for motor speed commands
-    // Publish to the Gazebo topic name - the bridge will handle conversion
-    // The bridge creates a ROS topic with the same name as the Gazebo topic
+    // Publisher for motor speed commands with reliable QoS
+    // Use reliable QoS to ensure commands are delivered even if there are hiccups
+    // Larger queue size (50) to buffer commands during brief network delays
+    rclcpp::QoS qos_profile(50);
+    qos_profile.reliability(rclcpp::ReliabilityPolicy::Reliable);
+    qos_profile.durability(rclcpp::DurabilityPolicy::Volatile);
+    
     motor_publisher_ = this->create_publisher<actuator_msgs::msg::Actuators>(
-      "/X3/gazebo/command/motor_speed", 10);
+      "/X3/gazebo/command/motor_speed", qos_profile);
 
-    // Create a timer to publish commands at 20 Hz
+    // Create a timer to publish commands at 50 Hz (higher rate for smoother control)
+    // Higher frequency reduces the impact of any dropped messages
     timer_ = this->create_wall_timer(
-      50ms,  // 20 Hz
+      20ms,  // 50 Hz for smoother, more reliable control
       std::bind(&MotorSpeedController::publish_cmd, this));
 
     // Get initial parameter value
