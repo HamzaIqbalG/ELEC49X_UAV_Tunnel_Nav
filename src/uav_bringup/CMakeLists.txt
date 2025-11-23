@@ -23,43 +23,31 @@ install(DIRECTORY config
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(actuator_msgs REQUIRED)
 
-# Basic UAV node (for future use - subscribes to sensor data)
-add_executable(basic_uav_node src/basic_node.cpp)
-ament_target_dependencies(basic_uav_node
+find_package(px4_msgs REQUIRED)
+
+# Offboard control node
+add_executable(offboard_control src/offboard_control.cpp)
+ament_target_dependencies(offboard_control
   rclcpp
+  px4_msgs
+)
+
+# Tunnel navigation node
+add_executable(tunnel_nav src/tunnel_nav.cpp)
+ament_target_dependencies(tunnel_nav
+  rclcpp
+  px4_msgs
   sensor_msgs
-)
-
-# Simple test node for workspace verification
-add_executable(test_node src/test_node.cpp)
-ament_target_dependencies(test_node
-  rclcpp
-  std_msgs
-)
-
-# Motor speed controller node (publishes motor speed commands for X3 model)
-# Uses actuator_msgs/msg/Actuators for Gazebo Fortress compatibility
-add_executable(motor_speed_controller src/motor_speed_controller.cpp)
-ament_target_dependencies(motor_speed_controller
-  rclcpp
-  actuator_msgs
-)
-
-# Manual control node (keyboard control for drone)
-add_executable(manual_control src/manual_control.cpp)
-ament_target_dependencies(manual_control
-  rclcpp
-  actuator_msgs
+  nav_msgs
 )
 
 install(TARGETS
-  basic_uav_node
-  test_node
-  motor_speed_controller
-  manual_control
+  offboard_control
+  tunnel_nav
   DESTINATION lib/${PROJECT_NAME}
 )
 

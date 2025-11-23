@@ -7,28 +7,13 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(gazebo_ros REQUIRED)
+
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
-# Install models
-install(DIRECTORY models
-  DESTINATION share/${PROJECT_NAME}
-)
-
-# Install worlds
-install(DIRECTORY worlds
-  DESTINATION share/${PROJECT_NAME}
-)
-
-# Install plugins
-install(DIRECTORY plugins
-  DESTINATION share/${PROJECT_NAME}
-)
-
-# Install launch files
-install(DIRECTORY launch
+# Install directories
+install(DIRECTORY launch models worlds config
   DESTINATION share/${PROJECT_NAME}
 )
 

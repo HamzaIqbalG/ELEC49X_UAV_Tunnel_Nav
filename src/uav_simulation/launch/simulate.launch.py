@@ -1,69 +1,90 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction, TimerAction
-from launch.conditions import IfCondition
-from launch.substitutions import PythonExpression
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction, TimerAction, LogInfo
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 import os
-
 
 def launch_setup(context, *args, **kwargs):
     # Get the package share directory
     pkg_share = FindPackageShare(package='uav_simulation').find('uav_simulation')
     
-    # Model path
-    model_path = os.path.join(pkg_share, 'models')
-    
-    # Get world name from launch argument
+    # Paths
     world_name = context.launch_configurations.get('world', 'tunnel_world')
-    
-    # Determine world file path based on name
-    # Both worlds use .sdf format for Gazebo Fortress
     world_file = os.path.join(pkg_share, 'worlds', f'{world_name}.sdf')
     
-    # Model file path - use X3 quadcopter (pre-tuned)
-    model_name = context.launch_configurations.get('model', 'x3_quadcopter')
-    model_file = os.path.join(model_path, model_name, 'model.sdf')
+    # PX4 Paths
+    home_dir = os.environ.get('HOME')
+    workspace_dir = os.path.join(home_dir, 'ELEC49X_UAV_Tunnel_Nav')
     
-    # Gazebo Fortress (Ignition Gazebo 6) uses 'ign gazebo' command
+    # Check workspace first, then home
+    if os.path.exists(os.path.join(workspace_dir, 'PX4-Autopilot')):
+        px4_dir = os.path.join(workspace_dir, 'PX4-Autopilot')
+    else:
+        px4_dir = os.path.join(home_dir, 'PX4-Autopilot')
+        
+    px4_build_dir = os.path.join(px4_dir, 'build/px4_sitl_default')
+    px4_bin = os.path.join(px4_build_dir, 'bin/px4')
+    
+    # Check if PX4 is built
+    if not os.path.exists(px4_bin):
+        return [
+            LogInfo(msg="ERROR: PX4 binary not found. Please run ./setup_px4.sh first.")
+        ]
+
+    # Gazebo Environment Variables
+    model_path = os.path.join(pkg_share, 'models')
+    px4_models = os.path.join(px4_dir, 'Tools/simulation/gz/models')
+    
+    env = os.environ.copy()
+    
+    # Add our models and PX4 models to Gazebo path
+    if 'IGN_GAZEBO_RESOURCE_PATH' in env:
+        env['IGN_GAZEBO_RESOURCE_PATH'] = f"{model_path}:{px4_models}:{env['IGN_GAZEBO_RESOURCE_PATH']}"
+    else:
+        env['IGN_GAZEBO_RESOURCE_PATH'] = f"{model_path}:{px4_models}"
+        
+    # PX4 Environment Variables
+    env['PX4_SIM_MODEL'] = 'gz_x500'  # Use standard x500 parameters (physics matches our custom model)
+    env['PX4_GZ_MODEL_NAME'] = 'x500_lidar_custom'
+    env['PX4_SOURCE_DIR'] = px4_dir
+    
+    # Gazebo Arguments
     gazebo_args = [
-        world_file,
+        '-r',  # Run immediately
+        world_file
     ]
     
-    # Set environment variables for Gazebo Fortress
-    env = os.environ.copy()
-    # For Ignition Gazebo, use IGN_GAZEBO_RESOURCE_PATH
-    if 'IGN_GAZEBO_RESOURCE_PATH' in env:
-        env['IGN_GAZEBO_RESOURCE_PATH'] = f"{model_path}:{env['IGN_GAZEBO_RESOURCE_PATH']}"
-    else:
-        env['IGN_GAZEBO_RESOURCE_PATH'] = model_path
-    
-    # Gazebo topic patterns for sensors
-    # Format: /world/<world_name>/model/<model_name>/link/<link_name>/sensor/<sensor_name>/<topic>
-    # Note: X3 model may not have these sensors, so we'll make them optional
-    lidar_gz_topic = f"/world/{world_name}/model/{model_name}/link/lidar_link/sensor/lidar_sensor/scan"
-    imu_gz_topic = f"/world/{world_name}/model/{model_name}/link/imu_link/sensor/imu_sensor/imu"
-    
-    # Gazebo topic for motor speed commands (X3 model uses motor speed commands)
-    # X3 model with robotNamespace=X3 subscribes to: /X3/gazebo/command/motor_speed
-    # For Gazebo Fortress: The bridge creates a ROS topic with the same name
-    motor_speed_gz_topic = f"/X3/gazebo/command/motor_speed"
-    
-    # ROS 2 topic names for sensors (bridged from Gazebo)
-    lidar_ros_topic = "/uav/scan"
-    imu_ros_topic = "/uav/imu"
-    
     return [
-        # Launch Gazebo Fortress
+        # 1. Launch MicroXRCEAgent (ROS 2 <-> PX4 Bridge)
+        ExecuteProcess(
+            cmd=['MicroXRCEAgent', 'udp4', '-p', '8888'],
+            output='screen'
+        ),
+        
+        # 2. Launch Gazebo Fortress
         ExecuteProcess(
             cmd=['ign', 'gazebo'] + gazebo_args,
             output='screen',
             env=env
         ),
         
-        # Spawn the drone model using ros_gz_sim (wait for Gazebo to start)
+        # 3. Launch PX4 SITL
+        ExecuteProcess(
+            cmd=[
+                px4_bin,
+                '-i', '0',
+                '-d',
+                os.path.join(px4_build_dir, 'etc'),
+                '-s', os.path.join(pkg_share, 'config', 'custom_start.sh')
+            ],
+            output='screen',
+            env=env
+        ),
+        
+        # 4. Spawn the drone model (x500_lidar_custom)
         TimerAction(
-            period=3.0,  # Wait 3 seconds for Gazebo to initialize
+            period=5.0,
             actions=[
                 Node(
                     package='ros_gz_sim',
@@ -71,153 +92,65 @@ def launch_setup(context, *args, **kwargs):
                     name='spawn_drone',
                     arguments=[
                         '-world', world_name,
-                        '-file', model_file,
-                        '-name', 'x3_quadcopter',  # Spawn name (can be different from model internal name)
+                        '-file', os.path.join(model_path, 'x500_lidar_custom', 'model.sdf'),
+                        '-name', 'x500_lidar_custom',
                         '-x', '0.0',
                         '-y', '0.0',
-                        '-z', '2.0'
+                        '-z', '0.5'
                     ],
                     output='screen'
                 ),
             ]
         ),
         
-        # Bridge LiDAR from Gazebo Transport to ROS 2
-        # Format: <gz_topic>@<ros_type>[<gz_type>
-        # [ means Gazebo -> ROS direction (one-way)
-        # Note: The bridge will create a ROS topic with the same name as the Gazebo topic
-        # We'll need to check the actual topic name Gazebo uses
+        # 5. Bridge Lidar and Pose (for TF)
         TimerAction(
-            period=8.0,  # Wait 8 seconds for drone to spawn and sensors to fully initialize
+            period=10.0,
             actions=[
                 Node(
                     package='ros_gz_bridge',
                     executable='parameter_bridge',
-                    name='lidar_bridge',
+                    name='ros_gz_bridge',
                     arguments=[
-                        # Bridge format: <gz_topic>@<ros_type>[<gz_type>
-                        # This bridges the Gazebo topic to a ROS topic with the same name
-                        f'{lidar_gz_topic}@sensor_msgs/msg/LaserScan[ignition.msgs.LaserScan'
+                        # Bridge LiDAR: Gazebo /scan -> ROS /scan
+                        '/scan@sensor_msgs/msg/LaserScan[ignition.msgs.LaserScan',
+                        # Bridge Pose: Gazebo /model/pose -> ROS /tf
+                        '/model/pose@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
+                        # Bridge Ground Truth: Gazebo Odometry -> ROS Odometry
+                        # We map Gazebo's /model/x500_lidar_custom/odometry to /odom
+                        f'/model/{context.launch_configurations.get("model", "x500_lidar_custom")}/odometry@nav_msgs/msg/Odometry[ignition.msgs.Odometry'
                     ],
-                    output='screen'
-                ),
-            ]
-        ),
-        
-        # Bridge IMU from Gazebo Transport to ROS 2
-        TimerAction(
-            period=8.0,  # Wait 8 seconds for drone to spawn and sensors to fully initialize
-            actions=[
-                Node(
-                    package='ros_gz_bridge',
-                    executable='parameter_bridge',
-                    name='imu_bridge',
-                    arguments=[
-                        # Bridge format: <gz_topic>@<ros_type>[<gz_type>
-                        f'{imu_gz_topic}@sensor_msgs/msg/Imu[ignition.msgs.IMU'
-                    ],
-                    output='screen'
-                ),
-            ]
-        ),
-        
-        # Bridge motor speed commands from ROS 2 to Gazebo (X3 model uses motor speeds)
-        # ] means ROS -> Gazebo direction (one-way)
-        # For Gazebo Fortress: use actuator_msgs/msg/Actuators which bridges to ignition.msgs.Actuators
-        TimerAction(
-            period=8.0,  # Wait 8 seconds for drone to spawn
-            actions=[
-                Node(
-                    package='ros_gz_bridge',
-                    executable='parameter_bridge',
-                    name='motor_speed_bridge',
-                    arguments=[
-                        # Bridge format: <gz_topic>@<ros_type>]<gz_type>
-                        # actuator_msgs/msg/Actuators bridges correctly to ignition.msgs.Actuators
-                        # The ROS topic name matches the Gazebo topic name
-                        f'{motor_speed_gz_topic}@actuator_msgs/msg/Actuators]ignition.msgs.Actuators'
-                    ],
-                    output='screen'
-                ),
-            ]
-        ),
-        
-        # Optional: Motor speed controller (automatic hover)
-        # This publishes motor speed commands for hover
-        # Only enable if controller is enabled AND manual control is NOT enabled
-        TimerAction(
-            period=10.0,  # Wait 10 seconds for everything to initialize
-            actions=[
-                Node(
-                    package='uav_bringup',
-                    executable='motor_speed_controller',
-                    name='motor_speed_controller',
-                    condition=IfCondition(
-                        # Check both conditions: controller enabled AND manual control disabled
-                        PythonExpression([
-                            "'", context.launch_configurations.get('enable_controller', 'false'), "' == 'true'",
-                            " and ",
-                            "'", context.launch_configurations.get('manual_control', 'false'), "' == 'false'"
-                        ])
-                    ) if context.launch_configurations.get('enable_controller', 'false') == 'true' and context.launch_configurations.get('manual_control', 'false') == 'false' else None,
-                    output='screen'
-                ),
-            ]
-        ),
-        
-        # Optional: Manual control (keyboard control - overrides automatic controller)
-        # NOTE: Keyboard input is captured in the terminal where ros2 launch is run
-        TimerAction(
-            period=10.0,  # Wait 10 seconds for everything to initialize
-            actions=[
-                Node(
-                    package='uav_bringup',
-                    executable='manual_control',
-                    name='manual_control',
-                    condition=IfCondition(
-                        context.launch_configurations.get('manual_control', 'false')
-                    ),
                     output='screen',
-                    emulate_tty=True  # Ensure stdin is connected for keyboard input
+                    parameters=[{'qos_overrides./model/pose.publisher.reliability': 'best_effort'}] 
                 ),
+                # Static TF for LiDAR (base_link -> lidar_link)
+                # Assuming base_link is at 0,0,0 and lidar is at 0,0,0.1
+                Node(
+                    package='tf2_ros',
+                    executable='static_transform_publisher',
+                    name='lidar_tf_publisher',
+                    arguments=['0', '0', '0.1', '0', '0', '0', 'x500_lidar_custom', 'x500_lidar_custom/lidar_link/lidar'],
+                    output='screen'
+                )
             ]
         ),
+        
+        # 6. Rviz2 Visualization
+        Node(
+            package='rviz2',
+            executable='rviz2',
+            name='rviz2',
+            arguments=['-d', os.path.join(pkg_share, 'config', 'view_uav.rviz')],
+            output='screen'
+        )
     ]
 
-
 def generate_launch_description():
-    # Declare launch argument for world selection
-    world_arg = DeclareLaunchArgument(
-        'world',
-        default_value='tunnel_world',
-        description='World file to load: tunnel_world or simpletunnel'
-    )
-    
-    # Declare launch argument for model selection
-    model_arg = DeclareLaunchArgument(
-        'model',
-        default_value='x3_quadcopter',
-        description='Drone model to use: x3_quadcopter (pre-tuned)'
-    )
-    
-    # Declare launch argument for enabling motor speed controller
-    controller_arg = DeclareLaunchArgument(
-        'enable_controller',
-        default_value='false',
-        description='Enable motor speed controller to make drone hover'
-    )
-    
-    # Declare launch argument for manual control mode
-    manual_control_arg = DeclareLaunchArgument(
-        'manual_control',
-        default_value='false',
-        description='Enable manual keyboard control (overrides automatic controller)'
-    )
-    
     return LaunchDescription([
-        world_arg,
-        model_arg,
-        controller_arg,
-        manual_control_arg,
+        DeclareLaunchArgument(
+            'world',
+            default_value='tunnel_world',
+            description='World file to load'
+        ),
         OpaqueFunction(function=launch_setup)
     ])

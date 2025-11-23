@@ -1,0 +1,62 @@
+[INFO] [launch]: All log files can be found below /home/saad/.ros/log/2025-11-22-16-08-45-852062-DESKTOP-NR2CFKU-268794
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [MicroXRCEAgent-1]: process started with pid [268801]
+[INFO] [ign-2]: process started with pid [268803]
+[INFO] [px4-3]: process started with pid [268805]
+[INFO] [rviz2-4]: process started with pid [268807]
+[MicroXRCEAgent-1] [35m[1763845722.976412][m info     | [34mUDPv4AgentLinux.cpp[m | [37minit                    [m | [32mrunning...[m             | port: 8888
+[MicroXRCEAgent-1] [35m[1763845722.976848][m info     | [34mRoot.cpp          [m | [37mset_verbose_level       [m | [32mlogger setup[m           | verbose_level: 4
+[px4-3] INFO  [px4] instance: 0
+[px4-3] 
+[px4-3] ______  __   __    ___ 
+[px4-3] | ___ \ \ \ / /   /   |
+[px4-3] | |_/ /  \ V /   / /| |
+[px4-3] |  __/   /   \  / /_| |
+[px4-3] | |     / /^\ \ \___  |
+[px4-3] \_|     \/   \/     |_/
+[px4-3] 
+[px4-3] px4 starting.
+[px4-3] 
+[px4-3] INFO  [px4] startup script: /bin/sh /home/saad/ELEC49X_UAV_Tunnel_Nav/install/uav_simulation/share/uav_simulation/config/custo
+[px4-3] INFO  [init] found model autostart file as SYS_AUTOSTART=4001
+[px4-3] INFO  [param] selected parameter default file parameters.bson
+[px4-3] INFO  [param] selected parameter backup file parameters_backup.bson
+[px4-3]   SYS_AUTOCONFIG: curr: 0 -> new: 1
+[px4-3]   SYS_AUTOSTART: curr: 0 -> new: 4001
+[px4-3]   CAL_ACC0_ID: curr: 0 -> new: 1310988
+[px4-3]   CAL_GYRO0_ID: curr: 0 -> new: 1310988
+[px4-3]   CAL_ACC1_ID: curr: 0 -> new: 1310996
+[px4-3]   CAL_GYRO1_ID: curr: 0 -> new: 1310996
+[px4-3]   CAL_ACC2_ID: curr: 0 -> new: 1311004
+[px4-3]   CAL_GYRO2_ID: curr: 0 -> new: 1311004
+[px4-3]   CAL_MAG0_ID: curr: 0 -> new: 197388
+[px4-3]   CAL_MAG0_PRIO: curr: -1 -> new: 50
+[px4-3]   CAL_MAG1_ID: curr: 0 -> new: 197644
+[px4-3]   CAL_MAG1_PRIO: curr: -1 -> new: 50
+[px4-3] * SENS_BOARD_X_OFF: curr: 0.0000 -> new: 0.0000
+[px4-3] * SENS_DPRES_OFF: curr: 0.0000 -> new: 0.0010
+[px4-3] INFO  [dataman] data manager file './dataman' size is 7866640 bytes
+[rviz2-4] [INFO] [1763845724.558257869] [rviz2]: Stereo is NOT SUPPORTED
+[rviz2-4] [INFO] [1763845724.558515285] [rviz2]: OpenGl version: 4.6 (GLSL 4.6)
+[rviz2-4] [INFO] [1763845724.602771888] [rviz2]: Stereo is NOT SUPPORTED
+[px4-3] INFO  [init] gazebo already running world: tunnel_world
+[INFO] [create-5]: process started with pid [269323]
+[create-5] [INFO] [1763845728.251059824] [spawn_drone]: Requested creation of entity.
+[create-5] [INFO] [1763845728.251263736] [spawn_drone]: OK creation of entity.
+[INFO] [create-5]: process has finished cleanly [pid 269323]
+[INFO] [parameter_bridge-6]: process started with pid [269548]
+[INFO] [static_transform_publisher-7]: process started with pid [269550]
+[static_transform_publisher-7] [WARN] [1763845732.992530722] []: Old-style arguments are deprecated; see --help for new-style arguments
+[static_transform_publisher-7] [INFO] [1763845733.017004395] [lidar_tf_publisher]: Spinning until stopped - publishing transform
+[static_transform_publisher-7] translation: ('0.000000', '0.000000', '0.100000')
+[static_transform_publisher-7] rotation: ('0.000000', '0.000000', '0.000000', '1.000000')
+[static_transform_publisher-7] from 'x500_lidar_custom' to 'x500_lidar_custom/lidar_link/lidar'
+[parameter_bridge-6] [INFO] [1763845733.058041169] [ros_gz_bridge]: Creating GZ->ROS Bridge: [/scan (ignition.msgs.LaserScan) -> /scan (sensor_msgs/msg/LaserScan)] (Lazy 0)
+[parameter_bridge-6] [INFO] [1763845733.061143185] [ros_gz_bridge]: Creating GZ->ROS Bridge: [/model/pose (ignition.msgs.Pose_V) -> /model/pose (tf2_msgs/msg/TFMessage)] (Lazy 0)
+[parameter_bridge-6] [INFO] [1763845733.062846827] [ros_gz_bridge]: Creating GZ->ROS Bridge: [/model/x500_lidar_custom/odometry (ignition.msgs.Odometry) -> /model/x500_lidar_custom/odometry (nav_msgs/msg/Odometry)] (Lazy 0)
+[px4-3] INFO  [gz_bridge] world: tunnel_world, model name: x500_lidar_custom, simulation model: 
+[px4-3] ERROR [gz_bridge] timed out waiting for clock message
+[px4-3] ERROR [gz_bridge] Task start failed (-1)
+[px4-3] ERROR [init] gz_bridge failed to start
+[px4-3] ERROR [px4] Startup script returned with return value: 256
+[ERROR] [px4-3]: process has died [pid 268805, exit code 255, cmd '/home/saad/ELEC49X_UAV_Tunnel_Nav/PX4-Autopilot/build/px4_sitl_default/bin/px4 -i 0 -d /home/saad/ELEC49X_UAV_Tunnel_Nav/PX4-Autopilot/build/px4_sitl_default/etc -s /home/saad/ELEC49X_UAV_Tunnel_Nav/install/uav_simulation/share/uav_simulation/config/custom_start.sh'].

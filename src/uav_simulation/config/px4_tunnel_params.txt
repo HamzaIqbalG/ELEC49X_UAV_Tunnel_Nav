@@ -1,0 +1,23 @@
+# PX4 Parameter File for Tunnel Navigation (GPS Denied, Vision Enabled)
+
+# EKF2: Use External Vision (EV) for Position and Yaw
+EKF2_AID_MASK 24      # 3 (Vision Pos) + 4 (Vision Yaw) -> Bitmask? No, EKF2_AID_MASK is old.
+# New PX4 (v1.14+) uses EKF2_EV_CTRL
+EKF2_EV_CTRL 15       # 1 (Horiz) + 2 (Vert) + 4 (Vel) + 8 (Yaw) = 15. Enable all EV aids.
+
+# EKF2: Height Reference
+EKF2_HGT_REF 3        # 0:Baro, 1:GPS, 2:Range, 3:Vision. Use Vision for height.
+
+# EKF2: Disable GPS
+EKF2_GPS_CTRL 0       # Disable GPS fusion
+
+# Commander: Allow Arming without GPS
+COM_ARM_WO_GPS 1      # Allow arming without GPS lock
+COM_RCL_EXCEPT 4      # Exception for RC Loss (if using offboard)
+
+# Safety
+COM_OBL_ACT 2         # Offboard Loss Action: Land (or 0: Loiter)
+COM_OF_LOSS_T 5.0     # Offboard Loss Timeout
+
+# Simulation Speed
+# PX4_SIM_SPEED_FACTOR 1.0
