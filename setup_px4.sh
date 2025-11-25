@@ -30,6 +30,7 @@ bash ./Tools/setup/ubuntu.sh
 
 # 4. Build PX4 SITL
 echo "Building PX4 SITL..."
+export PX4_GZ_VERSION=6
 make px4_sitl_default
 
 # 5. Install MicroXRCEAgent (ROS 2 Bridge)

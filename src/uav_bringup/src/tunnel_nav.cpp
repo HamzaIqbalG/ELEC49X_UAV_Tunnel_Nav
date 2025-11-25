@@ -56,6 +56,7 @@ public:
 private:
     void odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
     {
+        odom_received_ = true;
         // Forward Gazebo Odometry to PX4 VehicleVisualOdometry
         px4_msgs::msg::VehicleOdometry visual_odom{};
         
@@ -118,7 +119,7 @@ private:
         
         vehicle_visual_odometry_publisher_->publish(visual_odom);
 
-        RCLCPP_DEBUG(this->get_logger(), "OdomIn: [x:%.2f, y:%.2f, z:%.2f] -> VisOdomOut: [n:%.2f, e:%.2f, d:%.2f]", 
+        RCLCPP_INFO(this->get_logger(), "OdomIn: [x:%.2f, y:%.2f, z:%.2f] -> VisOdomOut: [n:%.2f, e:%.2f, d:%.2f]", 
             msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z,
             visual_odom.position[0], visual_odom.position[1], visual_odom.position[2]);
     }
@@ -204,13 +205,49 @@ private:
 
 	void timer_callback()
 	{
-		if (offboard_setpoint_counter_ == 10) {
-			// Change to Offboard mode after 10 setpoints
-			this->publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
+        // 0. Always publish offboard control mode and setpoints (required @ >2Hz)
+		publish_offboard_control_mode();
 
-			// Arm the vehicle
-			this->arm();
-		}
+        // Logic to decide what setpoint to send
+        bool takeoff_complete = (offboard_setpoint_counter_ >= 200); // Allow more time for takeoff
+        
+        if (!takeoff_complete) {
+            // Takeoff phase: Hold position at 1.5m
+            publish_trajectory_setpoint(0.0, 0.0, -1.5, true); 
+        } else {
+            // Navigation phase: Velocity control
+            publish_trajectory_setpoint(velocity_command_[0], velocity_command_[1], 0.0, false);
+        }
+
+        // 1. Check for Odometry
+        if (!odom_received_) {
+            if (offboard_setpoint_counter_ % 20 == 0) {
+                RCLCPP_WARN(this->get_logger(), "Waiting for Odometry data...");
+            }
+            return; // Don't attempt to arm yet
+        }
+
+        // 2. Arming and Mode Switching Logic
+        // We use the counter to delay initial attempts slightly, then retry periodically
+        
+        if (offboard_setpoint_counter_ > 10) {
+            // Retry Arming if not armed
+            if (arming_state_ != px4_msgs::msg::VehicleStatus::ARMING_STATE_ARMED) {
+                 if (offboard_setpoint_counter_ % 20 == 0) { // Retry every 1s (20 * 50ms)
+                    this->arm();
+                    RCLCPP_INFO(this->get_logger(), "Attempting to ARM...");
+                 }
+            }
+            
+            // Retry Offboard Mode if not in Offboard
+            // Nav state 14 is OFFBOARD
+            if (nav_state_ != 14) {
+                if (offboard_setpoint_counter_ % 20 == 0) {
+                    this->publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
+                    RCLCPP_INFO(this->get_logger(), "Attempting to switch to OFFBOARD...");
+                }
+            }
+        }
 
 		// Log status every second
 		if (offboard_setpoint_counter_ % 20 == 0) {
@@ -221,23 +258,8 @@ private:
                 velocity_command_[0], velocity_command_[1]);
 		}
 
-		// Publish offboard control mode
-		publish_offboard_control_mode();
-
-		// Publish trajectory setpoint
-        // If we haven't taken off, send takeoff setpoint (Hover at 1.5m)
-        // If we are flying, send velocity commands
-        
-        if (offboard_setpoint_counter_ < 100) {
-            // Takeoff phase (first 5 seconds approx)
-            publish_trajectory_setpoint(0.0, 0.0, -1.5, true); // Position control
-        } else {
-            // Navigation phase
-            publish_trajectory_setpoint(velocity_command_[0], velocity_command_[1], 0.0, false); // Velocity control
-        }
-
-		// Stop the counter after reaching a high number to avoid overflow
-		if (offboard_setpoint_counter_ < 200) {
+		// Increment counter
+		if (offboard_setpoint_counter_ < 500) {
 			offboard_setpoint_counter_++;
 		}
 	}
@@ -251,8 +273,8 @@ private:
 	void publish_offboard_control_mode()
 	{
 		px4_msgs::msg::OffboardControlMode msg{};
-		msg.position = (offboard_setpoint_counter_ < 100); // True during takeoff
-		msg.velocity = (offboard_setpoint_counter_ >= 100); // True during nav
+		msg.position = (offboard_setpoint_counter_ < 200); // True during takeoff
+		msg.velocity = (offboard_setpoint_counter_ >= 200); // True during nav
 		msg.acceleration = false;
 		msg.attitude = false;
 		msg.body_rate = false;
@@ -314,6 +336,7 @@ private:
 	uint64_t offboard_setpoint_counter_ = 0;
     uint8_t nav_state_ = 0;
     uint8_t arming_state_ = 0;
+    bool odom_received_ = false;
     
     float velocity_command_[3] = {0.0, 0.0, 0.0};
     
