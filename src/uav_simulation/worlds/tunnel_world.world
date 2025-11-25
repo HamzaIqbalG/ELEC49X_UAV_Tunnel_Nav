@@ -1,0 +1,123 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="tunnel_world">
+    <!-- A global light source -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <!-- Ground plane -->
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <!-- Simple tunnel structure -->
+    <model name="tunnel">
+      <static>true</static>
+      <!-- Floor -->
+      <link name="floor">
+        <pose>0 0 -0.5 0 0 0</pose>
+        <collision name="floor_collision">
+          <geometry>
+            <box>
+              <size>20 3 1</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="floor_visual">
+          <geometry>
+            <box>
+              <size>20 3 1</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.5 0.5 0.5 1</ambient>
+            <diffuse>0.5 0.5 0.5 1</diffuse>
+          </material>
+        </visual>
+      </link>
+
+      <!-- Left wall -->
+      <link name="left_wall">
+        <pose>0 -1.5 0.5 0 0 0</pose>
+        <collision name="left_wall_collision">
+          <geometry>
+            <box>
+              <size>20 0.1 2</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="left_wall_visual">
+          <geometry>
+            <box>
+              <size>20 0.1 2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.6 0.6 0.6 1</ambient>
+            <diffuse>0.6 0.6 0.6 1</diffuse>
+          </material>
+        </visual>
+      </link>
+
+      <!-- Right wall -->
+      <link name="right_wall">
+        <pose>0 1.5 0.5 0 0 0</pose>
+        <collision name="right_wall_collision">
+          <geometry>
+            <box>
+              <size>20 0.1 2</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="right_wall_visual">
+          <geometry>
+            <box>
+              <size>20 0.1 2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.6 0.6 0.6 1</ambient>
+            <diffuse>0.6 0.6 0.6 1</diffuse>
+          </material>
+        </visual>
+      </link>
+
+      <!-- Ceiling -->
+      <link name="ceiling">
+        <pose>0 0 1.5 0 0 0</pose>
+        <collision name="ceiling_collision">
+          <geometry>
+            <box>
+              <size>20 3 0.1</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="ceiling_visual">
+          <geometry>
+            <box>
+              <size>20 3 0.1</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.6 0.6 0.6 1</ambient>
+            <diffuse>0.6 0.6 0.6 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Physics settings -->
+    <physics type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <scene>
+      <ambient>0.4 0.4 0.4 1</ambient>
+      <background>0.7 0.7 0.7 1</background>
+      <shadows>true</shadows>
+    </scene>
+  </world>
+</sdf>
+
