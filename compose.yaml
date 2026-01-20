@@ -1,0 +1,13 @@
+services:
+  uav-sim:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    volumes:
+      - ./ros2_ws:/ros2_ws
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    network_mode: host
+    command: bash

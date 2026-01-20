@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<sdf version="1.8">
+  <world name="tunnel_world">
+    <plugin filename="libgz-sim-physics-system.so"
+            name="gz::sim::systems::Physics"/>
+    <plugin filename="libgz-sim-user-commands-system.so"
+            name="gz::sim::systems::UserCommands"/>
+    <plugin filename="libgz-sim-scene-broadcaster-system.so"
+            name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="libgz-sim-sensors-system.so"
+            name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+
+    <include>
+      <uri>model://uav</uri>
+      <pose>0 0 1 0 0 0</pose>
+    </include>
+
+    <model name="tunnel">
+      <static>true</static>
+      <link name="floor">
+        <pose>5 0 -0.05 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>20 3.2 0.1</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>20 3.2 0.1</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+      <link name="left_wall">
+        <pose>5 1.55 1 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>20 0.1 2</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>20 0.1 2</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+      <link name="right_wall">
+        <pose>5 -1.55 1 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>20 0.1 2</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>20 0.1 2</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+      <link name="ceiling">
+        <pose>5 0 2.05 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>20 3.2 0.1</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>20 3.2 0.1</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+  </world>
+</sdf>
