@@ -1,18 +1,23 @@
 # UAV Tunnel Demo (ROS 2 Humble + Gazebo Fortress)
 
 This project builds a sandboxed, local-only simulation: a simple UAV with a
-planar LiDAR navigating a straight tunnel in Gazebo Fortress. The UAV hovers
-in place for a short time, then moves forward while applying crude, deterministic
-wall avoidance based on the LiDAR scan.
+planar LiDAR navigating a straight tunnel in Gazebo Fortress. The UAV takes off
+briefly, then moves forward while applying crude, deterministic wall avoidance
+based on the LiDAR scan.
 
 ## Compatibility and Docs
 The stack is intentionally scoped to components with clear compatibility:
 - **ROS 2 Humble (Ubuntu 22.04 LTS)**: https://docs.ros.org/en/humble/
 - **Gazebo Fortress (gz-sim7)**: https://gazebosim.org/docs/fortress
 - **ROS–Gazebo bridge (`ros_gz`)**: https://github.com/gazebosim/ros_gz
+- **Aerostack2 Gazebo Assets (`as2_gazebo_assets`)**: https://docs.ros.org/en/humble/p/as2_gazebo_assets/
 
 This repo includes a minimal UAV model, a Gazebo system plugin for `/cmd_vel`,
 and a ROS 2 navigation node that uses `/scan`.
+
+From the Aerostack2 docs, `as2_gazebo_assets` is tested on **Gazebo Fortress**
+and should match your ROS 2 version. We use the Humble package to stay
+compatible with this stack.
 
 ## Sandboxed Environment (Docker)
 All installations happen inside a container. The host system remains unchanged.
@@ -105,11 +110,32 @@ ros2 launch uav_tunnel_nav bringup.launch.py headless:=false rviz:=true
 - The LiDAR scan is republished as `/scan_fixed` with `frame_id=base_link`
   to make RViz visualization reliable.
 
+## Aerostack2 Quadcopter Option
+Aerostack2 provides **Fortress-compatible** drone and sensor models. The assets
+include the `quadrotor_base` model and a `planar_lidar` payload. The quadrotor
+SDF template enables the Gazebo multicopter velocity controller, so publishing
+to `cmd_vel` remains valid.
+
+To use the Aerostack2 model in the tunnel:
+```bash
+ros2 launch uav_tunnel_nav bringup_as2.launch.py headless:=false rviz:=true
+```
+
+Key topics when using Aerostack2:
+- Command: `/gz/uav0/cmd_vel`
+- LiDAR scan: `/uav0/sensor_measurements/lidar/scan` (republished as `/scan_fixed`)
+
 ## Behavior
 - The UAV spawns at the tunnel entrance.
-- It "hovers" by holding position for `hover_seconds`.
+- It takes off for `takeoff_seconds` using a vertical velocity command.
 - It moves forward unless a front obstacle is closer than `safe_distance`.
 - It turns away from the closer side wall when blocked.
 
 You can tune speeds and thresholds via ROS parameters in
 `uav_tunnel_nav/tunnel_navigator.py`.
+
+Key navigation parameters (can be overridden via launch):
+- `takeoff_seconds`: duration of upward velocity
+- `takeoff_speed`: upward velocity used for takeoff
+ - `enable_arm`: enable arming via `/gz/uav0/arm`
+ - `arm_seconds`: duration to publish the arm signal before takeoff

@@ -2,7 +2,7 @@ from typing import Optional
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
 from sensor_msgs.msg import LaserScan
 
 
@@ -21,7 +21,8 @@ class ScanReframe(Node):
         )
         self.frame_id = self.get_parameter("frame_id").get_parameter_value().string_value
 
-        self.pub = self.create_publisher(LaserScan, output_topic, qos_profile_sensor_data)
+        reliable_qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE)
+        self.pub = self.create_publisher(LaserScan, output_topic, reliable_qos)
         self.sub = self.create_subscription(
             LaserScan, input_topic, self.on_scan, qos_profile_sensor_data
         )

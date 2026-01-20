@@ -9,7 +9,10 @@ setup(
     data_files=[
         ("share/ament_index/resource_index/packages", [f"resource/{package_name}"]),
         (f"share/{package_name}", ["package.xml"]),
-        (f"share/{package_name}/launch", ["launch/bringup.launch.py"]),
+        (
+            f"share/{package_name}/launch",
+            ["launch/bringup.launch.py", "launch/bringup_as2.launch.py"],
+        ),
         (f"share/{package_name}/rviz", ["rviz/uav_tunnel.rviz"]),
     ],
     install_requires=["setuptools"],

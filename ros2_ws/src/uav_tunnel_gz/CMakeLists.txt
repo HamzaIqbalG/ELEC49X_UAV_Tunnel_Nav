@@ -17,7 +17,7 @@ install(TARGETS cmd_vel_plugin
   LIBRARY DESTINATION lib
 )
 
-install(DIRECTORY worlds models
+install(DIRECTORY worlds models config
   DESTINATION share/${PROJECT_NAME}
 )
 

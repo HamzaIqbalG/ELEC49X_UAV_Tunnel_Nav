@@ -1,0 +1,16 @@
+world_name: tunnel
+drones:
+  - model_type: quadrotor_base
+    model_name: uav0
+    xyz: [0.0, 0.0, 1.0]
+    rpy: [0.0, 0.0, 0.0]
+    enable_velocity_control: true
+    payload:
+      - model_type: planar_lidar
+        model_name: lidar
+        xyz: [0.0, 0.0, 0.12]
+        rpy: [0.0, 0.0, 0.0]
+      - model_type: rgbd_camera
+        model_name: vio_cam
+        xyz: [0.12, 0.0, 0.06]
+        rpy: [0.0, 0.0, 0.0]

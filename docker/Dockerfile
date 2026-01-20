@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
     gz-fortress \
     libgz-sim7-dev \
     ros-humble-ros-gz \
+    ros-humble-as2-gazebo-assets \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /ros2_ws

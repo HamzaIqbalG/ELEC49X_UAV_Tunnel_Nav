@@ -5,17 +5,45 @@ import rclpy
 from geometry_msgs.msg import Twist
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
+from std_msgs.msg import Bool
 
 
 class TunnelNavigator(Node):
     def __init__(self) -> None:
         super().__init__("tunnel_navigator")
+        self.declare_parameter("cmd_vel_topic", "/cmd_vel")
+        self.declare_parameter("scan_topic", "/scan")
+        self.declare_parameter("enable_arm", False)
+        self.declare_parameter("arm_topic", "/gz/uav0/arm")
+        self.declare_parameter("arm_seconds", 1.0)
+        self.declare_parameter("takeoff_speed", 0.6)
+        self.declare_parameter("takeoff_seconds", 2.5)
         self.declare_parameter("forward_speed", 0.6)
         self.declare_parameter("turn_speed", 0.6)
         self.declare_parameter("safe_distance", 1.2)
         self.declare_parameter("side_clearance", 0.6)
-        self.declare_parameter("hover_seconds", 2.0)
 
+        self.cmd_vel_topic = (
+            self.get_parameter("cmd_vel_topic").get_parameter_value().string_value
+        )
+        self.scan_topic = (
+            self.get_parameter("scan_topic").get_parameter_value().string_value
+        )
+        self.enable_arm = (
+            self.get_parameter("enable_arm").get_parameter_value().bool_value
+        )
+        self.arm_topic = (
+            self.get_parameter("arm_topic").get_parameter_value().string_value
+        )
+        self.arm_seconds = (
+            self.get_parameter("arm_seconds").get_parameter_value().double_value
+        )
+        self.takeoff_speed = (
+            self.get_parameter("takeoff_speed").get_parameter_value().double_value
+        )
+        self.takeoff_seconds = (
+            self.get_parameter("takeoff_seconds").get_parameter_value().double_value
+        )
         self.forward_speed = (
             self.get_parameter("forward_speed").get_parameter_value().double_value
         )
@@ -28,13 +56,14 @@ class TunnelNavigator(Node):
         self.side_clearance = (
             self.get_parameter("side_clearance").get_parameter_value().double_value
         )
-        self.hover_seconds = (
-            self.get_parameter("hover_seconds").get_parameter_value().double_value
+        self.cmd_pub = self.create_publisher(Twist, self.cmd_vel_topic, 10)
+        self.arm_pub = (
+            self.create_publisher(Bool, self.arm_topic, 10)
+            if self.enable_arm
+            else None
         )
-
-        self.cmd_pub = self.create_publisher(Twist, "/cmd_vel", 10)
         self.scan_sub = self.create_subscription(
-            LaserScan, "/scan", self.on_scan, 10
+            LaserScan, self.scan_topic, self.on_scan, 10
         )
         self.timer = self.create_timer(0.1, self.on_timer)
 
@@ -50,7 +79,13 @@ class TunnelNavigator(Node):
 
         cmd = Twist()
         elapsed = time.monotonic() - self.start_time
-        if elapsed < self.hover_seconds:
+        if self.enable_arm and elapsed < self.arm_seconds:
+            self.arm_pub.publish(Bool(data=True))
+            return
+
+        takeoff_elapsed = elapsed - self.arm_seconds if self.enable_arm else elapsed
+        if takeoff_elapsed < self.takeoff_seconds:
+            cmd.linear.z = self.takeoff_speed
             self.cmd_pub.publish(cmd)
             return
 
