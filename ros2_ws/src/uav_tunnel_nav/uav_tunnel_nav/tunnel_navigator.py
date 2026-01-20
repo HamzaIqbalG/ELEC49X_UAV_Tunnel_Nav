@@ -22,6 +22,8 @@ class TunnelNavigator(Node):
         self.declare_parameter("turn_speed", 0.6)
         self.declare_parameter("safe_distance", 1.2)
         self.declare_parameter("side_clearance", 0.6)
+        self.declare_parameter("center_gain", 0.8)
+        self.declare_parameter("center_deadband", 0.05)
 
         self.cmd_vel_topic = (
             self.get_parameter("cmd_vel_topic").get_parameter_value().string_value
@@ -55,6 +57,12 @@ class TunnelNavigator(Node):
         )
         self.side_clearance = (
             self.get_parameter("side_clearance").get_parameter_value().double_value
+        )
+        self.center_gain = (
+            self.get_parameter("center_gain").get_parameter_value().double_value
+        )
+        self.center_deadband = (
+            self.get_parameter("center_deadband").get_parameter_value().double_value
         )
         self.cmd_pub = self.create_publisher(Twist, self.cmd_vel_topic, 10)
         self.arm_pub = (
@@ -94,22 +102,33 @@ class TunnelNavigator(Node):
         if count == 0:
             return
 
-        window = max(1, int(count * 0.02))
-        center = count // 2
-
-        front_min = self._min_range(ranges, center - window, center + window)
-        right_min = self._min_range(ranges, int(count * 0.05), int(count * 0.25))
-        left_min = self._min_range(ranges, int(count * 0.75), int(count * 0.95))
+        if self.last_scan.angle_increment > 0.0:
+            front_min = self._min_range_by_angle(self.last_scan, -0.2, 0.2)
+            right_min = self._min_range_by_angle(self.last_scan, -2.0, -1.1)
+            left_min = self._min_range_by_angle(self.last_scan, 1.1, 2.0)
+        else:
+            window = max(1, int(count * 0.02))
+            center = count // 2
+            front_min = self._min_range(ranges, center - window, center + window)
+            right_min = self._min_range(ranges, int(count * 0.05), int(count * 0.25))
+            left_min = self._min_range(ranges, int(count * 0.75), int(count * 0.95))
 
         if front_min < self.safe_distance:
             cmd.linear.x = 0.0
             cmd.angular.z = self.turn_speed if left_min > right_min else -self.turn_speed
         else:
             cmd.linear.x = self.forward_speed
+            if math.isfinite(left_min) and math.isfinite(right_min):
+                error = left_min - right_min
+                if abs(error) >= self.center_deadband:
+                    cmd.angular.z = max(
+                        -self.turn_speed,
+                        min(self.turn_speed, self.center_gain * error),
+                    )
             if left_min < self.side_clearance:
-                cmd.angular.z = -self.turn_speed * 0.5
+                cmd.angular.z = -self.turn_speed
             elif right_min < self.side_clearance:
-                cmd.angular.z = self.turn_speed * 0.5
+                cmd.angular.z = self.turn_speed
 
         self.cmd_pub.publish(cmd)
 
@@ -119,6 +138,14 @@ class TunnelNavigator(Node):
         end = min(len(ranges), end)
         valid = [r for r in ranges[start:end] if math.isfinite(r)]
         return min(valid) if valid else float("inf")
+
+    @staticmethod
+    def _min_range_by_angle(scan: LaserScan, start_angle: float, end_angle: float) -> float:
+        start_idx = int((start_angle - scan.angle_min) / scan.angle_increment)
+        end_idx = int((end_angle - scan.angle_min) / scan.angle_increment)
+        if end_idx < start_idx:
+            start_idx, end_idx = end_idx, start_idx
+        return TunnelNavigator._min_range(scan.ranges, start_idx, end_idx)
 
 
 def main(args=None) -> None:
