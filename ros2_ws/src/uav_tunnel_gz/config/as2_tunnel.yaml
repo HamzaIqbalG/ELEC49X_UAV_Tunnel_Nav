@@ -8,7 +8,7 @@ drones:
     payload:
       - model_type: planar_lidar
         model_name: lidar
-        xyz: [0.0, 0.0, 0.12]
+        xyz: [0.0, 0.0, -0.05]
         rpy: [0.0, 0.0, 0.0]
       - model_type: rgbd_camera
         model_name: vio_cam

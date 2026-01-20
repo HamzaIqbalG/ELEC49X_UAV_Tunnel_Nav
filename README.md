@@ -139,3 +139,7 @@ Key navigation parameters (can be overridden via launch):
 - `takeoff_speed`: upward velocity used for takeoff
  - `enable_arm`: enable arming via `/gz/uav0/arm`
  - `arm_seconds`: duration to publish the arm signal before takeoff
+
+LiDAR adjustments:
+- The local `planar_lidar` model overrides the AS2 asset to provide a 360° scan.
+- The LiDAR payload is mounted slightly below the quadcopter (`z = -0.05`).
