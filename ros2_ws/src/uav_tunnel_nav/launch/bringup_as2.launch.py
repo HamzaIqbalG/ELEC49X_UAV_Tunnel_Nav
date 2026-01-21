@@ -100,8 +100,12 @@ def generate_launch_description() -> LaunchDescription:
                     {
                         "use_sim_time": True,
                         "odom_topic": "/uav0/basic_odom",
-                        "corridor_width": 5.0,
-                        "end_wall_x": 15.0,
+                        "stats_topic": "/uav0/basic_odom/stats",
+                        "vio_odom_topic": "/uav0/vio/odom",
+                        "vio_position_weight": 0.6,
+                        "vio_velocity_weight": 0.3,
+                        "baro_weight": 0.5,
+                        "mag_weight": 0.4,
                     }
                 ],
                 output="screen",

@@ -1,13 +1,13 @@
 import math
-import time
 from typing import Optional
 
 import rclpy
+from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
-from sensor_msgs.msg import FluidPressure, Imu, LaserScan, MagneticField
+from sensor_msgs.msg import FluidPressure, Imu, MagneticField
 from tf2_ros import TransformBroadcaster
 
 
@@ -17,13 +17,17 @@ class BasicOdometry(Node):
         self.declare_parameter("imu_topic", "/uav0/sensor_measurements/imu")
         self.declare_parameter("mag_topic", "/uav0/sensor_measurements/magnetometer")
         self.declare_parameter("baro_topic", "/uav0/sensor_measurements/air_pressure")
-        self.declare_parameter("lidar_topic", "/uav0/sensor_measurements/lidar/scan")
+        self.declare_parameter("vio_odom_topic", "/uav0/vio/odom")
         self.declare_parameter("odom_topic", "/uav0/basic_odom")
+        self.declare_parameter("stats_topic", "/uav0/basic_odom/stats")
         self.declare_parameter("odom_frame", "odom")
         self.declare_parameter("base_frame", "base_link")
-        self.declare_parameter("corridor_width", 5.0)
-        self.declare_parameter("end_wall_x", 15.0)
         self.declare_parameter("publish_tf", True)
+        self.declare_parameter("vio_position_weight", 0.6)
+        self.declare_parameter("vio_velocity_weight", 0.3)
+        self.declare_parameter("baro_weight", 0.5)
+        self.declare_parameter("mag_weight", 0.4)
+        self.declare_parameter("use_gravity_comp", True)
 
         self.imu_topic = (
             self.get_parameter("imu_topic").get_parameter_value().string_value
@@ -34,11 +38,14 @@ class BasicOdometry(Node):
         self.baro_topic = (
             self.get_parameter("baro_topic").get_parameter_value().string_value
         )
-        self.lidar_topic = (
-            self.get_parameter("lidar_topic").get_parameter_value().string_value
+        self.vio_odom_topic = (
+            self.get_parameter("vio_odom_topic").get_parameter_value().string_value
         )
         self.odom_topic = (
             self.get_parameter("odom_topic").get_parameter_value().string_value
+        )
+        self.stats_topic = (
+            self.get_parameter("stats_topic").get_parameter_value().string_value
         )
         self.odom_frame = (
             self.get_parameter("odom_frame").get_parameter_value().string_value
@@ -46,17 +53,27 @@ class BasicOdometry(Node):
         self.base_frame = (
             self.get_parameter("base_frame").get_parameter_value().string_value
         )
-        self.corridor_width = (
-            self.get_parameter("corridor_width").get_parameter_value().double_value
-        )
-        self.end_wall_x = (
-            self.get_parameter("end_wall_x").get_parameter_value().double_value
-        )
         self.publish_tf = (
             self.get_parameter("publish_tf").get_parameter_value().bool_value
         )
+        self.vio_position_weight = (
+            self.get_parameter("vio_position_weight").get_parameter_value().double_value
+        )
+        self.vio_velocity_weight = (
+            self.get_parameter("vio_velocity_weight").get_parameter_value().double_value
+        )
+        self.baro_weight = (
+            self.get_parameter("baro_weight").get_parameter_value().double_value
+        )
+        self.mag_weight = (
+            self.get_parameter("mag_weight").get_parameter_value().double_value
+        )
+        self.use_gravity_comp = (
+            self.get_parameter("use_gravity_comp").get_parameter_value().bool_value
+        )
 
         self.odom_pub = self.create_publisher(Odometry, self.odom_topic, 10)
+        self.stats_pub = self.create_publisher(DiagnosticArray, self.stats_topic, 10)
         self.tf_broadcaster = TransformBroadcaster(self) if self.publish_tf else None
 
         self.create_subscription(Imu, self.imu_topic, self.on_imu, qos_profile_sensor_data)
@@ -67,19 +84,21 @@ class BasicOdometry(Node):
             FluidPressure, self.baro_topic, self.on_baro, qos_profile_sensor_data
         )
         self.create_subscription(
-            LaserScan, self.lidar_topic, self.on_scan, qos_profile_sensor_data
+            Odometry, self.vio_odom_topic, self.on_vio, qos_profile_sensor_data
         )
 
         self.timer = self.create_timer(0.1, self.on_timer)
 
         self.last_imu: Optional[Imu] = None
         self.last_mag: Optional[MagneticField] = None
-        self.last_scan: Optional[LaserScan] = None
+        self.last_vio: Optional[Odometry] = None
         self.pressure_ref: Optional[float] = None
+        self.last_baro_z: Optional[float] = None
 
         self.position = [0.0, 0.0, 0.0]
+        self.velocity = [0.0, 0.0, 0.0]
         self.last_position = [0.0, 0.0, 0.0]
-        self.last_time = time.monotonic()
+        self.last_time = None
 
     def on_imu(self, msg: Imu) -> None:
         self.last_imu = msg
@@ -90,40 +109,76 @@ class BasicOdometry(Node):
     def on_baro(self, msg: FluidPressure) -> None:
         if self.pressure_ref is None and msg.fluid_pressure > 0.0:
             self.pressure_ref = msg.fluid_pressure
-        self.position[2] = self._pressure_to_altitude(msg.fluid_pressure)
+        self.last_baro_z = self._pressure_to_altitude(msg.fluid_pressure)
 
-    def on_scan(self, msg: LaserScan) -> None:
-        self.last_scan = msg
+    def on_vio(self, msg: Odometry) -> None:
+        self.last_vio = msg
 
     def on_timer(self) -> None:
-        if self.last_imu is None or self.last_scan is None:
+        if self.last_imu is None:
             return
-
-        front_range = self._min_range_by_angle(self.last_scan, -0.2, 0.2)
-        left_range = self._min_range_by_angle(self.last_scan, 1.1, 2.0)
-        right_range = self._min_range_by_angle(self.last_scan, -2.0, -1.1)
-
-        if math.isfinite(front_range):
-            self.position[0] = self.end_wall_x - front_range
-
-        if math.isfinite(left_range) and math.isfinite(right_range):
-            self.position[1] = (right_range - left_range) * 0.5
 
         roll, pitch, yaw = self._quat_to_rpy(self.last_imu.orientation)
         if self.last_mag is not None:
-            yaw = math.atan2(
+            mag_yaw = math.atan2(
                 self.last_mag.magnetic_field.y, self.last_mag.magnetic_field.x
             )
+            yaw = self._blend_angle(yaw, mag_yaw, self.mag_weight)
         qx, qy, qz, qw = self._rpy_to_quat(roll, pitch, yaw)
 
-        now = time.monotonic()
+        now = self.get_clock().now().nanoseconds * 1e-9
+        if self.last_time is None:
+            self.last_time = now
+            return
         dt = max(1e-3, now - self.last_time)
-        vx = (self.position[0] - self.last_position[0]) / dt
-        vy = (self.position[1] - self.last_position[1]) / dt
-        vz = (self.position[2] - self.last_position[2]) / dt
+        self.last_time = now
+
+        acc_world = self._rotate_vector(
+            (self.last_imu.linear_acceleration.x,
+             self.last_imu.linear_acceleration.y,
+             self.last_imu.linear_acceleration.z),
+            (qx, qy, qz, qw),
+        )
+        ax, ay, az = acc_world
+        if self.use_gravity_comp:
+            az -= 9.80665
+
+        self.velocity[0] += ax * dt
+        self.velocity[1] += ay * dt
+        self.velocity[2] += az * dt
+
+        self.position[0] += self.velocity[0] * dt
+        self.position[1] += self.velocity[1] * dt
+        self.position[2] += self.velocity[2] * dt
+
+        if self.last_baro_z is not None:
+            self.position[2] = self._blend(
+                self.position[2], self.last_baro_z, self.baro_weight
+            )
+
+        if self.last_vio is not None:
+            vio_pos = self.last_vio.pose.pose.position
+            self.position[0] = self._blend(
+                self.position[0], vio_pos.x, self.vio_position_weight
+            )
+            self.position[1] = self._blend(
+                self.position[1], vio_pos.y, self.vio_position_weight
+            )
+            self.position[2] = self._blend(
+                self.position[2], vio_pos.z, self.vio_position_weight
+            )
+            vio_vel = self.last_vio.twist.twist.linear
+            self.velocity[0] = self._blend(
+                self.velocity[0], vio_vel.x, self.vio_velocity_weight
+            )
+            self.velocity[1] = self._blend(
+                self.velocity[1], vio_vel.y, self.vio_velocity_weight
+            )
+            self.velocity[2] = self._blend(
+                self.velocity[2], vio_vel.z, self.vio_velocity_weight
+            )
 
         self.last_position = list(self.position)
-        self.last_time = now
 
         odom = Odometry()
         odom.header.stamp = self.get_clock().now().to_msg()
@@ -136,11 +191,12 @@ class BasicOdometry(Node):
         odom.pose.pose.orientation.y = qy
         odom.pose.pose.orientation.z = qz
         odom.pose.pose.orientation.w = qw
-        odom.twist.twist.linear.x = vx
-        odom.twist.twist.linear.y = vy
-        odom.twist.twist.linear.z = vz
+        odom.twist.twist.linear.x = self.velocity[0]
+        odom.twist.twist.linear.y = self.velocity[1]
+        odom.twist.twist.linear.z = self.velocity[2]
 
         self.odom_pub.publish(odom)
+        self.stats_pub.publish(self._build_stats(roll, pitch, yaw))
 
         if self.tf_broadcaster:
             tf_msg = TransformStamped()
@@ -161,17 +217,53 @@ class BasicOdometry(Node):
         return 44330.0 * (1.0 - (pressure / self.pressure_ref) ** (1.0 / 5.255))
 
     @staticmethod
-    def _min_range_by_angle(scan: LaserScan, start_angle: float, end_angle: float) -> float:
-        if scan.angle_increment == 0.0:
-            return float("inf")
-        start_idx = int((start_angle - scan.angle_min) / scan.angle_increment)
-        end_idx = int((end_angle - scan.angle_min) / scan.angle_increment)
-        if end_idx < start_idx:
-            start_idx, end_idx = end_idx, start_idx
-        start_idx = max(0, start_idx)
-        end_idx = min(len(scan.ranges), end_idx)
-        valid = [r for r in scan.ranges[start_idx:end_idx] if math.isfinite(r)]
-        return min(valid) if valid else float("inf")
+    def _blend(current: float, measurement: float, weight: float) -> float:
+        weight = max(0.0, min(1.0, weight))
+        return (1.0 - weight) * current + weight * measurement
+
+    @staticmethod
+    def _blend_angle(a: float, b: float, weight: float) -> float:
+        weight = max(0.0, min(1.0, weight))
+        delta = math.atan2(math.sin(b - a), math.cos(b - a))
+        return a + weight * delta
+
+    @staticmethod
+    def _rotate_vector(vec, quat) -> tuple[float, float, float]:
+        vx, vy, vz = vec
+        qx, qy, qz, qw = quat
+        # Quaternion rotation: v' = q * v * q^-1
+        tx = 2.0 * (qy * vz - qz * vy)
+        ty = 2.0 * (qz * vx - qx * vz)
+        tz = 2.0 * (qx * vy - qy * vx)
+        vpx = vx + qw * tx + (qy * tz - qz * ty)
+        vpy = vy + qw * ty + (qz * tx - qx * tz)
+        vpz = vz + qw * tz + (qx * ty - qy * tx)
+        return vpx, vpy, vpz
+
+    def _build_stats(self, roll: float, pitch: float, yaw: float) -> DiagnosticArray:
+        msg = DiagnosticArray()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        status = DiagnosticStatus()
+        status.name = "basic_odometry"
+        status.level = DiagnosticStatus.OK
+        status.message = "basic odometry running"
+        status.values = [
+            KeyValue(key="pos_x", value=f"{self.position[0]:.3f}"),
+            KeyValue(key="pos_y", value=f"{self.position[1]:.3f}"),
+            KeyValue(key="pos_z", value=f"{self.position[2]:.3f}"),
+            KeyValue(key="vel_x", value=f"{self.velocity[0]:.3f}"),
+            KeyValue(key="vel_y", value=f"{self.velocity[1]:.3f}"),
+            KeyValue(key="vel_z", value=f"{self.velocity[2]:.3f}"),
+            KeyValue(key="roll", value=f"{roll:.3f}"),
+            KeyValue(key="pitch", value=f"{pitch:.3f}"),
+            KeyValue(key="yaw", value=f"{yaw:.3f}"),
+            KeyValue(key="baro_z", value=f"{self.last_baro_z or 0.0:.3f}"),
+            KeyValue(key="vio_ok", value=str(self.last_vio is not None)),
+            KeyValue(key="mag_ok", value=str(self.last_mag is not None)),
+            KeyValue(key="baro_ok", value=str(self.last_baro_z is not None)),
+        ]
+        msg.status.append(status)
+        return msg
 
     @staticmethod
     def _quat_to_rpy(q) -> tuple[float, float, float]:

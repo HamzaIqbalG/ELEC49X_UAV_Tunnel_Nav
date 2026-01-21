@@ -94,6 +94,23 @@ source install/setup.bash
 ros2 launch uav_tunnel_nav bringup.launch.py headless:=false
 ```
 
+## GUI Dashboard (Trajectory + Sensors)
+The dashboard is a simple Python GUI that subscribes to odometry, ground truth
+and sensor topics and plots them live.
+
+Inside the container:
+```bash
+python3 /dashboard/uav_dashboard.py --use-sim-time
+```
+
+Optional overrides:
+```bash
+python3 /dashboard/uav_dashboard.py \
+  --odom-topic /uav0/basic_odom \
+  --gt-pose-topic /uav0/ground_truth/pose \
+  --gt-twist-topic /uav0/ground_truth/twist
+```
+
 To start RViz2 with the LiDAR display:
 ```bash
 ros2 launch uav_tunnel_nav bringup.launch.py headless:=false rviz:=true
@@ -154,6 +171,8 @@ LiDAR adjustments:
 
 Basic odometry:
 - `basic_odometry` composes a simple odometry estimate without EKF fusion.
-- Uses LiDAR for x/y positioning (front wall + corridor centering),
-  barometer for altitude, IMU for roll/pitch, and magnetometer for yaw.
+- Uses IMU integration for short-term velocity/position, barometer for altitude,
+  magnetometer for yaw, and (when available) a VIO odometry topic for drift
+  correction. **LiDAR is not used for odometry**.
 - Publishes TF `odom -> base_link` and `nav_msgs/Odometry` on `/uav0/basic_odom`.
+- Publishes dashboard-friendly stats on `/uav0/basic_odom/stats`.

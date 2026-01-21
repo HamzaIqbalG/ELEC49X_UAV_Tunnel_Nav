@@ -25,10 +25,14 @@ RUN apt-get update && apt-get install -y \
     libgz-sim7-dev \
     ros-humble-ros-gz \
     ros-humble-as2-gazebo-assets \
+    python3-matplotlib \
+    python3-numpy \
+    python3-tk \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /ros2_ws
 COPY ros2_ws/src /ros2_ws/src
+COPY dashboard /dashboard
 COPY docker/entrypoint.sh /ros2_ws/entrypoint.sh
 RUN chmod +x /ros2_ws/entrypoint.sh
 
