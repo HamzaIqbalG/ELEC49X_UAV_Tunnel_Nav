@@ -94,9 +94,22 @@ def generate_launch_description() -> LaunchDescription:
                 output="screen",
             ),
             Node(
+                package="uav_tunnel_nav",
+                executable="basic_odometry",
+                parameters=[
+                    {
+                        "use_sim_time": True,
+                        "odom_topic": "/uav0/basic_odom",
+                        "corridor_width": 5.0,
+                        "end_wall_x": 15.0,
+                    }
+                ],
+                output="screen",
+            ),
+            Node(
                 package="tf2_ros",
                 executable="static_transform_publisher",
-                arguments=["0", "0", "0", "0", "0", "0", "1", "world", "base_link"],
+                arguments=["0", "0", "0", "0", "0", "0", "1", "world", "odom"],
                 condition=IfCondition(LaunchConfiguration("static_tf")),
                 output="screen",
             ),

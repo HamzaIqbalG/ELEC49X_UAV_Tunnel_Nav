@@ -22,7 +22,7 @@ Visualization Manager:
       Style: Points
       Topic: /scan_fixed
   Global Options:
-    Fixed Frame: world
+    Fixed Frame: odom
   Tools:
     - Class: rviz_default_plugins/Interact
     - Class: rviz_default_plugins/MoveCamera

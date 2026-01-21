@@ -25,6 +25,7 @@ setup(
         "console_scripts": [
             "tunnel_navigator = uav_tunnel_nav.tunnel_navigator:main",
             "scan_reframe = uav_tunnel_nav.scan_reframe:main",
+            "basic_odometry = uav_tunnel_nav.basic_odometry:main",
         ],
     },
 )

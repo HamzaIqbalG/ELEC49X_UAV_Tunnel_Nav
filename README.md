@@ -109,6 +109,8 @@ ros2 launch uav_tunnel_nav bringup.launch.py headless:=false rviz:=true
 - A 2D GPU LiDAR is mounted on a dedicated `lidar_link`.
 - The LiDAR scan is republished as `/scan_fixed` with `frame_id=base_link`
   to make RViz visualization reliable.
+ - Additional sensors in the AS2 configuration: barometer (`air_pressure`),
+   magnetometer, and a downward-facing VGA camera for basic VIO wiring.
 
 ## Aerostack2 Quadcopter Option
 Aerostack2 provides **Fortress-compatible** drone and sensor models. The assets
@@ -124,6 +126,10 @@ ros2 launch uav_tunnel_nav bringup_as2.launch.py headless:=false rviz:=true
 Key topics when using Aerostack2:
 - Command: `/gz/uav0/cmd_vel`
 - LiDAR scan: `/uav0/sensor_measurements/lidar/scan` (republished as `/scan_fixed`)
+ - IMU: `/uav0/sensor_measurements/imu`
+ - Magnetometer: `/uav0/sensor_measurements/magnetometer`
+ - Barometer: `/uav0/sensor_measurements/air_pressure`
+ - Basic odometry: `/uav0/basic_odom`
 
 ## Behavior
 - The UAV spawns at the tunnel entrance.
@@ -145,3 +151,9 @@ Key navigation parameters (can be overridden via launch):
 LiDAR adjustments:
 - The local `planar_lidar` model overrides the AS2 asset to provide a 360° scan.
 - The LiDAR payload is mounted slightly below the quadcopter (`z = -0.05`).
+
+Basic odometry:
+- `basic_odometry` composes a simple odometry estimate without EKF fusion.
+- Uses LiDAR for x/y positioning (front wall + corridor centering),
+  barometer for altitude, IMU for roll/pitch, and magnetometer for yaw.
+- Publishes TF `odom -> base_link` and `nav_msgs/Odometry` on `/uav0/basic_odom`.

@@ -82,7 +82,7 @@ def generate_launch_description() -> LaunchDescription:
             Node(
                 package="tf2_ros",
                 executable="static_transform_publisher",
-                arguments=["0", "0", "0", "0", "0", "0", "1", "world", "base_link"],
+                arguments=["0", "0", "0", "0", "0", "0", "1", "world", "odom"],
                 output="screen",
             ),
             Node(
