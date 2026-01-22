@@ -111,6 +111,45 @@ python3 /dashboard/uav_dashboard.py \
   --gt-twist-topic /uav0/ground_truth/twist
 ```
 
+## macOS (UTM Ubuntu VM) Build + Run
+
+### 2) Install Docker inside the VM
+```bash
+sudo apt-get update
+sudo apt-get install -y docker.io
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+### 3) Clone and build
+```bash
+git clone <YOUR_REPO_URL>
+cd UAV-Tunnel-V2
+docker build -t uav-tunnel-sim -f docker/Dockerfile .
+```
+
+### 4) Run Gazebo GUI inside the VM
+```bash
+xhost +local:docker
+docker run --rm -it \
+  --env="DISPLAY" \
+  --env="QT_X11_NO_MITSHM=1" \
+  --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
+  uav-tunnel-sim
+```
+
+Inside the container:
+```bash
+cd /ros2_ws
+source install/setup.bash
+ros2 launch uav_tunnel_nav bringup_as2.launch.py headless:=false rviz:=true
+```
+
+### 5) Optional dashboard (inside container)
+```bash
+python3 /dashboard/uav_dashboard.py --use-sim-time
+```
+
 To start RViz2 with the LiDAR display:
 ```bash
 ros2 launch uav_tunnel_nav bringup.launch.py headless:=false rviz:=true
