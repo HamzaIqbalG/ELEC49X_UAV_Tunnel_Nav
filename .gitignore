@@ -1,6 +1,7 @@
 # ROS 2 Colcon Workspace
 # These are critical to ignore
 install/
+build/
 log/
 
 # IDE Folders
@@ -217,3 +218,7 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+# # Legacy/Deprecated Code
+legacy_v1/
