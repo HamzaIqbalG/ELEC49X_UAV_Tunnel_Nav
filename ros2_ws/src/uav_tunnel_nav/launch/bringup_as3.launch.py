@@ -20,12 +20,13 @@ def generate_launch_description() -> LaunchDescription:
 
     world_path = os.path.join(gz_share, "worlds")
     models_path = os.path.join(gz_share, "models")
-    sim_config = os.path.join(gz_share, "config", "as2_tunnel.yaml")
+    sim_config = os.path.join(gz_share, "config", "as3_tunnel.yaml")
     rviz_config = os.path.join(nav_share, "rviz", "uav_tunnel.rviz")
 
     current_resource = os.environ.get("GZ_SIM_RESOURCE_PATH", "")
     resource_path = _append_env_path(world_path, current_resource)
     resource_path = _append_env_path(models_path, resource_path)
+
     return LaunchDescription(
         [
             DeclareLaunchArgument(

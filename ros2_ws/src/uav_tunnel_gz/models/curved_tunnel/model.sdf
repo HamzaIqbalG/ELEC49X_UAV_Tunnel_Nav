@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<sdf version="1.8">
+  <model name="curved_tunnel">
+    <static>true</static>
+
+    <link name="tunnel">
+
+      <!-- Collision -->
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <uri>meshes/curved_tunnel.stl</uri>
+          </mesh>
+        </geometry>
+      </collision>
+
+      <!-- Visual -->
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>meshes/curved_tunnel.stl</uri>
+          </mesh>
+        </geometry>
+      </visual>
+
+    </link>
+  </model>
+</sdf>
