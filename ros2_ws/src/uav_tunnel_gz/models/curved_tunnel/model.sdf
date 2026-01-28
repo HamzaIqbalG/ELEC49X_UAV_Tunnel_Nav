@@ -21,6 +21,10 @@
             <uri>meshes/curved_tunnel.stl</uri>
           </mesh>
         </geometry>
+        <material>
+            <ambient>0.2 0.2 0.2 1</ambient>
+            <diffuse>0.2 0.2 0.2 1</diffuse>
+        </material>
       </visual>
 
     </link>
