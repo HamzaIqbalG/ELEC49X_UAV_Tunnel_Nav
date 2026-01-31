@@ -9,3 +9,8 @@ param set EKF2_HGT_REF 3
 param set EKF2_GPS_CTRL 0
 param set COM_ARM_WO_GPS 1
 param set COM_RCL_EXCEPT 4
+
+# Restart EKF2 to apply new parameters (specifically GPS disable)
+param set EKF2_GPS_CHECK 0
+param set COM_POS_FS_EPH 0
+param set COM_POS_FS_EPV 0
