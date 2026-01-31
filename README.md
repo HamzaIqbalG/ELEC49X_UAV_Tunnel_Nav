@@ -125,6 +125,38 @@ ros2 launch uav_simulation simulate_simpletunnel.launch.py
 - `src/msgs/` - Custom message definitions (to be implemented)
 
 
+TEST THIS
+
+Pull this branch, you may need to clone PX4_ros_com if this is not done automatically.
+
+a. Source the workspace and build and source again:
+   ```bash
+   source install/setup.bash
+   colcon build --symlink-install
+   source install/setup.bash
+   ```
+b. run the world
+```bash
+ros2 launch uav_simulation simulate.launch.py
+```
+
+c. in another terminal create bridge for input
+```bash
+source install/setup.bash
+ros2 launch px4_ros_com offboard_control_launch.yaml
+```
+d. in another terminal create bridge for input
+```bash
+source install/setup.bash
+ros2 launch px4_ros_com sensor_combined_listener.launch.py
+```
+e. in another terminal run perception node
+```bash
+source install/setup.bash
+ros2 run drone_perception navigator
+```
+See if anything happens
+
 3. Development Guide
 
 For detailed instructions on how to develop on this project, see [DEVELOPMENT_GUIDE.md](DEVELOPMENT_GUIDE.md).
