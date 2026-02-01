@@ -29,6 +29,9 @@ setup(
             "basic_odometry = uav_tunnel_nav.basic_odometry:main",
             "baro_to_pose = uav_tunnel_nav.baro_to_pose:main",
             "mag_to_yaw = uav_tunnel_nav.mag_to_yaw:main",
+            "imu_reframe = uav_tunnel_nav.imu_reframe:main",
+            "vio_watchdog = uav_tunnel_nav.vio_watchdog:main",
+            "gt_to_vio_odom = uav_tunnel_nav.gt_to_vio_odom:main",
         ],
     },
 )

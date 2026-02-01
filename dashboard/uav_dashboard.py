@@ -17,6 +17,7 @@ from sensor_msgs.msg import FluidPressure, Imu, MagneticField
 import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 
 
 class DataSeries:
@@ -57,7 +58,9 @@ class UavDashboardNode(Node):
         self.last_imu: Optional[Imu] = None
         self.last_stats: Optional[DiagnosticArray] = None
 
-        self.create_subscription(Odometry, args.odom_topic, self.on_odom, 10)
+        self.create_subscription(
+            Odometry, args.odom_topic, self.on_odom, qos_profile_sensor_data
+        )
         self.create_subscription(
             PoseStamped, args.gt_pose_topic, self.on_gt_pose, qos_profile_sensor_data
         )
@@ -165,9 +168,15 @@ class DashboardUI:
         self.node = node
         self.root = tk.Tk()
         self.root.title("UAV Tunnel Dashboard")
+        self.traj_limits = (-6.0, 6.0, -3.0, 3.0, 0.0, 4.0)
+        self.traj_ticks = (
+            self._linspace(self.traj_limits[0], self.traj_limits[1], 7),
+            self._linspace(self.traj_limits[2], self.traj_limits[3], 7),
+            self._linspace(self.traj_limits[4], self.traj_limits[5], 5),
+        )
 
         fig = Figure(figsize=(10, 7), dpi=100)
-        self.ax_traj = fig.add_subplot(2, 2, 1)
+        self.ax_traj = fig.add_subplot(2, 2, 1, projection="3d")
         self.ax_vel = fig.add_subplot(2, 2, 2)
         self.ax_att = fig.add_subplot(2, 2, 3)
         self.ax_sens = fig.add_subplot(2, 2, 4)
@@ -188,25 +197,51 @@ class DashboardUI:
     def update(self) -> None:
         with self.node.lock:
             self.ax_traj.clear()
-            self.ax_traj.set_title("Trajectory (Top-Down XY)")
+            self.ax_traj.set_title("Trajectory (3D)")
             self.ax_traj.set_xlabel("X (m)")
             self.ax_traj.set_ylabel("Y (m)")
-            self.ax_traj.set_aspect("equal", adjustable="box")
+            self.ax_traj.set_zlabel("Z (m)")
             self.ax_traj.grid(True, linestyle="--", alpha=0.3)
+            self.ax_traj.view_init(elev=20.0, azim=-60.0)
+            x_min, x_max, y_min, y_max, z_min, z_max = self.traj_limits
+            self.ax_traj.set_xlim(x_min, x_max)
+            self.ax_traj.set_ylim(y_min, y_max)
+            self.ax_traj.set_zlim(z_min, z_max)
+            self.ax_traj.set_xticks(self.traj_ticks[0])
+            self.ax_traj.set_yticks(self.traj_ticks[1])
+            self.ax_traj.set_zticks(self.traj_ticks[2])
+            if hasattr(self.ax_traj, "set_box_aspect"):
+                self.ax_traj.set_box_aspect(
+                    (x_max - x_min, y_max - y_min, z_max - z_min)
+                )
+            self.ax_traj.set_autoscale_on(False)
             if self.node.odom.x:
-                self.ax_traj.plot(self.node.odom.x, self.node.odom.y, label="odom")
+                self.ax_traj.plot(
+                    self.node.odom.x,
+                    self.node.odom.y,
+                    self.node.odom.z,
+                    label="odom",
+                )
                 self.ax_traj.scatter(
                     [self.node.odom.x[0], self.node.odom.x[-1]],
                     [self.node.odom.y[0], self.node.odom.y[-1]],
+                    [self.node.odom.z[0], self.node.odom.z[-1]],
                     s=20,
                     marker="o",
                     label="odom start/end",
                 )
             if self.node.gt.x:
-                self.ax_traj.plot(self.node.gt.x, self.node.gt.y, label="ground truth")
+                self.ax_traj.plot(
+                    self.node.gt.x,
+                    self.node.gt.y,
+                    self.node.gt.z,
+                    linestyle="--",
+                    label="ground truth",
+                )
                 self.ax_traj.scatter(
                     [self.node.gt.x[0], self.node.gt.x[-1]],
                     [self.node.gt.y[0], self.node.gt.y[-1]],
+                    [self.node.gt.z[0], self.node.gt.z[-1]],
                     s=20,
                     marker="x",
                     label="gt start/end",
@@ -216,13 +251,34 @@ class DashboardUI:
             self.ax_vel.clear()
             self.ax_vel.set_title("Velocity")
             if self.node.odom_vel.t:
-                self.ax_vel.plot(self.node.odom_vel.t, self.node.odom_vel.x, label="vx")
-                self.ax_vel.plot(self.node.odom_vel.t, self.node.odom_vel.y, label="vy")
-                self.ax_vel.plot(self.node.odom_vel.t, self.node.odom_vel.z, label="vz")
+                self.ax_vel.plot(
+                    self.node.odom_vel.t, self.node.odom_vel.x, label="odom vx"
+                )
+                self.ax_vel.plot(
+                    self.node.odom_vel.t, self.node.odom_vel.y, label="odom vy"
+                )
+                self.ax_vel.plot(
+                    self.node.odom_vel.t, self.node.odom_vel.z, label="odom vz"
+                )
             if self.node.gt_vel.t:
-                self.ax_vel.plot(self.node.gt_vel.t, self.node.gt_vel.x, "--", label="gt vx")
-                self.ax_vel.plot(self.node.gt_vel.t, self.node.gt_vel.y, "--", label="gt vy")
-                self.ax_vel.plot(self.node.gt_vel.t, self.node.gt_vel.z, "--", label="gt vz")
+                self.ax_vel.plot(
+                    self.node.gt_vel.t,
+                    self.node.gt_vel.x,
+                    "--",
+                    label="gt vx",
+                )
+                self.ax_vel.plot(
+                    self.node.gt_vel.t,
+                    self.node.gt_vel.y,
+                    "--",
+                    label="gt vy",
+                )
+                self.ax_vel.plot(
+                    self.node.gt_vel.t,
+                    self.node.gt_vel.z,
+                    "--",
+                    label="gt vz",
+                )
             self.ax_vel.legend(loc="best")
 
             self.ax_att.clear()
@@ -254,6 +310,13 @@ class DashboardUI:
     def run(self) -> None:
         self.root.after(200, self.update)
         self.root.mainloop()
+
+    @staticmethod
+    def _linspace(start: float, end: float, count: int) -> list[float]:
+        if count <= 1:
+            return [start]
+        step = (end - start) / (count - 1)
+        return [start + i * step for i in range(count)]
 
 
 def main() -> None:

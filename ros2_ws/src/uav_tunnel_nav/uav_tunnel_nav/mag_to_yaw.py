@@ -12,6 +12,7 @@ class MagToYaw(Node):
     def __init__(self) -> None:
         super().__init__("mag_to_yaw")
         self.declare_parameter("mag_topic", "/uav0/sensor_measurements/magnetometer")
+        self.declare_parameter("mag_topic_alt", "/uav0/sensor_measurements/mag")
         self.declare_parameter("imu_topic", "/uav0/sensor_measurements/imu")
         self.declare_parameter("pose_topic", "/uav0/mag/yaw")
         self.declare_parameter("frame_id", "odom")
@@ -21,6 +22,9 @@ class MagToYaw(Node):
 
         self.mag_topic = (
             self.get_parameter("mag_topic").get_parameter_value().string_value
+        )
+        self.mag_topic_alt = (
+            self.get_parameter("mag_topic_alt").get_parameter_value().string_value
         )
         self.imu_topic = (
             self.get_parameter("imu_topic").get_parameter_value().string_value
@@ -47,9 +51,21 @@ class MagToYaw(Node):
         self.create_subscription(
             Imu, self.imu_topic, self.on_imu, qos_profile_sensor_data
         )
-        self.create_subscription(
-            MagneticField, self.mag_topic, self.on_mag, qos_profile_sensor_data
+        self.mag_subscriptions = []
+        self.mag_subscriptions.append(
+            self.create_subscription(
+                MagneticField, self.mag_topic, self.on_mag, qos_profile_sensor_data
+            )
         )
+        if self.mag_topic_alt and self.mag_topic_alt != self.mag_topic:
+            self.mag_subscriptions.append(
+                self.create_subscription(
+                    MagneticField,
+                    self.mag_topic_alt,
+                    self.on_mag,
+                    qos_profile_sensor_data,
+                )
+            )
 
     def on_imu(self, msg: Imu) -> None:
         self.last_imu = msg
