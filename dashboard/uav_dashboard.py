@@ -243,8 +243,10 @@ class DashboardUI:
 
             if self.node.last_stats:
                 self.status.set("Stats OK")
+            elif self.node.odom.t:
+                self.status.set("Odom OK (no stats)")
             else:
-                self.status.set("Waiting for /basic_odom/stats")
+                self.status.set("Waiting for odometry")
 
         self.canvas.draw_idle()
         self.root.after(200, self.update)

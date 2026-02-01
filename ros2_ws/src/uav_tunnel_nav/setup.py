@@ -13,6 +13,7 @@ setup(
             f"share/{package_name}/launch",
             ["launch/bringup.launch.py", "launch/bringup_as2.launch.py"],
         ),
+        (f"share/{package_name}/config", ["config/ekf.yaml"]),
         (f"share/{package_name}/rviz", ["rviz/uav_tunnel.rviz"]),
     ],
     install_requires=["setuptools"],
@@ -26,6 +27,8 @@ setup(
             "tunnel_navigator = uav_tunnel_nav.tunnel_navigator:main",
             "scan_reframe = uav_tunnel_nav.scan_reframe:main",
             "basic_odometry = uav_tunnel_nav.basic_odometry:main",
+            "baro_to_pose = uav_tunnel_nav.baro_to_pose:main",
+            "mag_to_yaw = uav_tunnel_nav.mag_to_yaw:main",
         ],
     },
 )
