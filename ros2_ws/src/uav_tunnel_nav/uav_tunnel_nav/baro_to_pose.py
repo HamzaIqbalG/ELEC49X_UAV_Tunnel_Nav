@@ -12,6 +12,7 @@ class BaroToPose(Node):
     def __init__(self) -> None:
         super().__init__("baro_to_pose")
         self.declare_parameter("baro_topic", "/uav0/sensor_measurements/air_pressure")
+        self.declare_parameter("baro_topic_alt", "/uav0/sensor_measurements/barometer")
         self.declare_parameter("pose_topic", "/uav0/baro/pose")
         self.declare_parameter("frame_id", "odom")
         self.declare_parameter("reference_pressure", 0.0)
@@ -21,6 +22,9 @@ class BaroToPose(Node):
 
         self.baro_topic = (
             self.get_parameter("baro_topic").get_parameter_value().string_value
+        )
+        self.baro_topic_alt = (
+            self.get_parameter("baro_topic_alt").get_parameter_value().string_value
         )
         self.pose_topic = (
             self.get_parameter("pose_topic").get_parameter_value().string_value
@@ -44,9 +48,21 @@ class BaroToPose(Node):
         self.pose_pub = self.create_publisher(
             PoseWithCovarianceStamped, self.pose_topic, 10
         )
-        self.create_subscription(
-            FluidPressure, self.baro_topic, self.on_baro, qos_profile_sensor_data
+        self.baro_subscriptions = []
+        self.baro_subscriptions.append(
+            self.create_subscription(
+                FluidPressure, self.baro_topic, self.on_baro, qos_profile_sensor_data
+            )
         )
+        if self.baro_topic_alt and self.baro_topic_alt != self.baro_topic:
+            self.baro_subscriptions.append(
+                self.create_subscription(
+                    FluidPressure,
+                    self.baro_topic_alt,
+                    self.on_baro,
+                    qos_profile_sensor_data,
+                )
+            )
 
     def on_baro(self, msg: FluidPressure) -> None:
         if msg.fluid_pressure <= 0.0:

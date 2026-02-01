@@ -45,6 +45,11 @@ def generate_launch_description() -> LaunchDescription:
                 default_value="true",
                 description="Publish a static world->base_link TF for RViz.",
             ),
+            DeclareLaunchArgument(
+                "use_gt_vio",
+                default_value="false",
+                description="Publish /uav0/vio/odom from ground truth (sim-only).",
+            ),
             SetEnvironmentVariable("GZ_SIM_RESOURCE_PATH", resource_path),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
@@ -89,6 +94,48 @@ def generate_launch_description() -> LaunchDescription:
                         "use_sim_time": True,
                         "input_topic": "/uav0/sensor_measurements/lidar/scan",
                         "output_topic": "/scan_fixed",
+                        "frame_id": "base_link",
+                    }
+                ],
+                output="screen",
+            ),
+            Node(
+                package="uav_tunnel_nav",
+                executable="vio_watchdog",
+                parameters=[
+                    {
+                        "use_sim_time": True,
+                        "vio_topic": "/uav0/vio/odom",
+                        "startup_timeout_sec": 3.0,
+                        "timeout_sec": 0.5,
+                    }
+                ],
+                output="screen",
+            ),
+            Node(
+                package="uav_tunnel_nav",
+                executable="gt_to_vio_odom",
+                parameters=[
+                    {
+                        "use_sim_time": True,
+                        "pose_topic": "/uav0/ground_truth/pose",
+                        "twist_topic": "/uav0/ground_truth/twist",
+                        "odom_topic": "/uav0/vio/odom",
+                        "frame_id": "odom",
+                        "child_frame_id": "base_link",
+                    }
+                ],
+                condition=IfCondition(LaunchConfiguration("use_gt_vio")),
+                output="screen",
+            ),
+            Node(
+                package="uav_tunnel_nav",
+                executable="imu_reframe",
+                parameters=[
+                    {
+                        "use_sim_time": True,
+                        "input_topic": "/uav0/sensor_measurements/imu",
+                        "output_topic": "/uav0/imu/reframed",
                         "frame_id": "base_link",
                     }
                 ],
