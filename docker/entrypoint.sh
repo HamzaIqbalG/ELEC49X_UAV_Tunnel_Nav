@@ -3,6 +3,10 @@ set -e
 
 source /opt/ros/humble/setup.bash
 
+if [ -f /ardu_ws/install/setup.bash ]; then
+  source /ardu_ws/install/setup.bash
+fi
+
 if [ -f /ros2_ws/install/setup.bash ]; then
   source /ros2_ws/install/setup.bash
 fi

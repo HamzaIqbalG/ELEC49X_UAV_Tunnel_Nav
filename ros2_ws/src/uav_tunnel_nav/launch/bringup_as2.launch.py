@@ -22,6 +22,7 @@ def generate_launch_description() -> LaunchDescription:
     models_path = os.path.join(gz_share, "models")
     sim_config = os.path.join(gz_share, "config", "as2_tunnel.yaml")
     rviz_config = os.path.join(nav_share, "rviz", "uav_tunnel.rviz")
+    ekf_config = os.path.join(nav_share, "config", "ekf.yaml")
 
     current_resource = os.environ.get("GZ_SIM_RESOURCE_PATH", "")
     resource_path = _append_env_path(world_path, current_resource)
@@ -43,6 +44,11 @@ def generate_launch_description() -> LaunchDescription:
                 "static_tf",
                 default_value="true",
                 description="Publish a static world->base_link TF for RViz.",
+            ),
+            DeclareLaunchArgument(
+                "use_gt_vio",
+                default_value="false",
+                description="Publish /uav0/vio/odom from ground truth (sim-only).",
             ),
             SetEnvironmentVariable("GZ_SIM_RESOURCE_PATH", resource_path),
             IncludeLaunchDescription(
@@ -95,19 +101,79 @@ def generate_launch_description() -> LaunchDescription:
             ),
             Node(
                 package="uav_tunnel_nav",
-                executable="basic_odometry",
+                executable="vio_watchdog",
                 parameters=[
                     {
                         "use_sim_time": True,
-                        "odom_topic": "/uav0/basic_odom",
-                        "stats_topic": "/uav0/basic_odom/stats",
-                        "vio_odom_topic": "/uav0/vio/odom",
-                        "vio_position_weight": 0.6,
-                        "vio_velocity_weight": 0.3,
-                        "baro_weight": 0.5,
-                        "mag_weight": 0.4,
+                        "vio_topic": "/uav0/vio/odom",
+                        "startup_timeout_sec": 3.0,
+                        "timeout_sec": 0.5,
                     }
                 ],
+                output="screen",
+            ),
+            Node(
+                package="uav_tunnel_nav",
+                executable="gt_to_vio_odom",
+                parameters=[
+                    {
+                        "use_sim_time": True,
+                        "pose_topic": "/uav0/ground_truth/pose",
+                        "twist_topic": "/uav0/ground_truth/twist",
+                        "odom_topic": "/uav0/vio/odom",
+                        "frame_id": "odom",
+                        "child_frame_id": "base_link",
+                    }
+                ],
+                condition=IfCondition(LaunchConfiguration("use_gt_vio")),
+                output="screen",
+            ),
+            Node(
+                package="uav_tunnel_nav",
+                executable="imu_reframe",
+                parameters=[
+                    {
+                        "use_sim_time": True,
+                        "input_topic": "/uav0/sensor_measurements/imu",
+                        "output_topic": "/uav0/imu/reframed",
+                        "frame_id": "base_link",
+                    }
+                ],
+                output="screen",
+            ),
+            Node(
+                package="uav_tunnel_nav",
+                executable="baro_to_pose",
+                parameters=[
+                    {
+                        "use_sim_time": True,
+                        "baro_topic": "/uav0/sensor_measurements/air_pressure",
+                        "pose_topic": "/uav0/baro/pose",
+                        "frame_id": "odom",
+                    }
+                ],
+                output="screen",
+            ),
+            Node(
+                package="uav_tunnel_nav",
+                executable="mag_to_yaw",
+                parameters=[
+                    {
+                        "use_sim_time": True,
+                        "mag_topic": "/uav0/sensor_measurements/magnetometer",
+                        "imu_topic": "/uav0/sensor_measurements/imu",
+                        "pose_topic": "/uav0/mag/yaw",
+                        "frame_id": "odom",
+                    }
+                ],
+                output="screen",
+            ),
+            Node(
+                package="robot_localization",
+                executable="ekf_node",
+                name="ekf_filter_node",
+                parameters=[ekf_config],
+                remappings=[("odometry/filtered", "/uav0/basic_odom")],
                 output="screen",
             ),
             Node(
