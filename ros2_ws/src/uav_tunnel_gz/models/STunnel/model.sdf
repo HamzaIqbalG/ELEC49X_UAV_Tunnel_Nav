@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<sdf version="1.8">
+  <model name="STunnel">
+    <static>true</static>
+
+    <link name="tunnel">
+
+      <!-- Collision -->
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <uri>meshes/STunnel.stl</uri>
+          </mesh>
+        </geometry>
+      </collision>
+
+      <!-- Visual -->
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>meshes/STunnel.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+            <ambient>0.2 0.2 0.2 1</ambient>
+            <diffuse>0.2 0.2 0.2 1</diffuse>
+        </material>
+      </visual>
+
+    </link>
+  </model>
+</sdf>

@@ -11,7 +11,7 @@ setup(
         (f"share/{package_name}", ["package.xml"]),
         (
             f"share/{package_name}/launch",
-            ["launch/bringup.launch.py", "launch/bringup_as2.launch.py","launch/bringup_as3.launch.py" ],
+            ["launch/bringup.launch.py", "launch/bringup_as2.launch.py","launch/bringup_as3.launch.py", "launch/STunnel.launch.py" ],
         ),
         (f"share/{package_name}/rviz", ["rviz/uav_tunnel.rviz"]),
     ],

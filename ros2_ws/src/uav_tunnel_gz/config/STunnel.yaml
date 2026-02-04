@@ -1,0 +1,24 @@
+world_name: STunnel
+drones:
+  - model_type: quadrotor_base
+    model_name: uav0
+    xyz: [0.0, 0.0, 1.0]
+    rpy: [0.0, 0.0, 0.0]
+    enable_velocity_control: true
+    payload:
+      - model_type: planar_lidar
+        model_name: lidar
+        xyz: [0.0, 0.0, -0.05]
+        rpy: [0.0, 0.0, 0.0]
+      - model_type: vga_camera
+        model_name: vio_cam
+        xyz: [0.0, 0.0, -0.02]
+        rpy: [0.0, 1.5708, 0.0]
+      - model_type: air_pressure
+        model_name: barometer
+        xyz: [0.0, 0.0, 0.0]
+        rpy: [0.0, 0.0, 0.0]
+      - model_type: magnetometer
+        model_name: mag
+        xyz: [0.0, 0.0, 0.0]
+        rpy: [0.0, 0.0, 0.0]
