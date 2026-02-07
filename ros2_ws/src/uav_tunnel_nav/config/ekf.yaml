@@ -8,7 +8,7 @@ ekf_filter_node:
     transform_timeout: 0.2
     print_diagnostics: true
     publish_tf: true
-    map_frame: world
+    map_frame: map
     odom_frame: odom
     base_link_frame: base_link
     world_frame: odom
