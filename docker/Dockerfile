@@ -31,13 +31,12 @@ RUN curl -sSL https://packages.osrfoundation.org/gazebo.gpg \
 http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" \
       > /etc/apt/sources.list.d/gazebo-stable.list
 
+# Core simulation packages (stable – changes here rebuild ArduPilot layers)
 RUN apt-get update && apt-get install -y \
     gz-fortress \
     libgz-sim7-dev \
     ros-humble-ros-gz \
-    ros-humble-robot-localization \
     ros-humble-as2-gazebo-assets \
-    ros-humble-slam-toolbox \
     python3-matplotlib \
     python3-numpy \
     python3-tk \
@@ -78,6 +77,12 @@ RUN /bin/bash -c "source /opt/ros/humble/setup.bash && \
     colcon build --cmake-args -DBUILD_TESTING=ON"
 
 USER root
+
+# Optional ROS packages (add/remove here without rebuilding ArduPilot)
+RUN apt-get update && apt-get install -y \
+    ros-humble-robot-localization \
+    ros-humble-slam-toolbox \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /ros2_ws
 COPY ros2_ws/src /ros2_ws/src
