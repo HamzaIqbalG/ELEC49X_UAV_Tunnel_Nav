@@ -21,6 +21,7 @@ slam_toolbox:
     # ── Map parameters ────────────────────────────────────────────────
     resolution: 0.05                # 5 cm cells – good detail for tunnels
     max_laser_range: 12.0           # match the LiDAR's configured range
+    minimum_laser_range: 0.08       # filter near-zero noise from the LiDAR
     minimum_time_interval: 0.5      # throttle scan processing (seconds)
     transform_timeout: 0.2
     tf_buffer_duration: 30.0
