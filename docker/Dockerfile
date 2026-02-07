@@ -37,6 +37,7 @@ RUN apt-get update && apt-get install -y \
     ros-humble-ros-gz \
     ros-humble-robot-localization \
     ros-humble-as2-gazebo-assets \
+    ros-humble-slam-toolbox \
     python3-matplotlib \
     python3-numpy \
     python3-tk \

@@ -21,8 +21,22 @@ Visualization Manager:
       Size (m): 0.05
       Style: Points
       Topic: /scan_fixed
+    - Alpha: 0.7
+      Class: rviz_default_plugins/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: SLAMMap
+      Topic: /map
+      Use Timestamp: false
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
   Global Options:
-    Fixed Frame: odom
+    Fixed Frame: map
   Tools:
     - Class: rviz_default_plugins/Interact
     - Class: rviz_default_plugins/MoveCamera
