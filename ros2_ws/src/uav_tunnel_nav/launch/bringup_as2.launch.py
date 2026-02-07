@@ -3,7 +3,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -23,6 +23,7 @@ def generate_launch_description() -> LaunchDescription:
     sim_config = os.path.join(gz_share, "config", "as2_tunnel.yaml")
     rviz_config = os.path.join(nav_share, "rviz", "uav_tunnel.rviz")
     ekf_config = os.path.join(nav_share, "config", "ekf.yaml")
+    slam_config = os.path.join(nav_share, "config", "slam_toolbox.yaml")
 
     current_resource = os.environ.get("GZ_SIM_RESOURCE_PATH", "")
     resource_path = _append_env_path(world_path, current_resource)
@@ -49,6 +50,11 @@ def generate_launch_description() -> LaunchDescription:
                 "use_gt_vio",
                 default_value="false",
                 description="Publish /uav0/vio/odom from ground truth (sim-only).",
+            ),
+            DeclareLaunchArgument(
+                "use_slam",
+                default_value="true",
+                description="Run slam_toolbox for online async SLAM.",
             ),
             SetEnvironmentVariable("GZ_SIM_RESOURCE_PATH", resource_path),
             IncludeLaunchDescription(
@@ -177,10 +183,19 @@ def generate_launch_description() -> LaunchDescription:
                 output="screen",
             ),
             Node(
+                package="slam_toolbox",
+                executable="async_slam_toolbox_node",
+                name="slam_toolbox",
+                parameters=[slam_config],
+                remappings=[("/scan", "/scan_fixed")],
+                condition=IfCondition(LaunchConfiguration("use_slam")),
+                output="screen",
+            ),
+            Node(
                 package="tf2_ros",
                 executable="static_transform_publisher",
-                arguments=["0", "0", "0", "0", "0", "0", "1", "world", "odom"],
-                condition=IfCondition(LaunchConfiguration("static_tf")),
+                arguments=["0", "0", "0", "0", "0", "0", "1", "map", "odom"],
+                condition=UnlessCondition(LaunchConfiguration("use_slam")),
                 output="screen",
             ),
             Node(
