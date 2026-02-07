@@ -13,7 +13,7 @@ setup(
             f"share/{package_name}/launch",
             ["launch/bringup.launch.py", "launch/bringup_as2.launch.py"],
         ),
-        (f"share/{package_name}/config", ["config/ekf.yaml"]),
+        (f"share/{package_name}/config", ["config/ekf.yaml", "config/slam_toolbox.yaml"]),
         (f"share/{package_name}/rviz", ["rviz/uav_tunnel.rviz"]),
     ],
     install_requires=["setuptools"],
