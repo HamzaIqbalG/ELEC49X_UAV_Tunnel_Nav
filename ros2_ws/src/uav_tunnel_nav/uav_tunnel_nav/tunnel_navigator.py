@@ -11,6 +11,9 @@ from std_msgs.msg import Bool
 class TunnelNavigator(Node):
     def __init__(self) -> None:
         super().__init__("tunnel_navigator")
+        self.turn_direction = 1 
+        self.prev_angular = 0.0
+        self.angular_smoothing = 0.6 
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
         self.declare_parameter("scan_topic", "/scan")
         self.declare_parameter("enable_arm", False)
@@ -19,11 +22,12 @@ class TunnelNavigator(Node):
         self.declare_parameter("takeoff_speed", 0.6)
         self.declare_parameter("takeoff_seconds", 2.5)
         self.declare_parameter("forward_speed", 0.6)
-        self.declare_parameter("turn_speed", 0.6)
-        self.declare_parameter("safe_distance", 1.2)
+        self.declare_parameter("turn_speed", 0.1)
+        self.declare_parameter("safe_distance", 2)
         self.declare_parameter("side_clearance", 0.6)
         self.declare_parameter("center_gain", 0.8)
         self.declare_parameter("center_deadband", 0.05)
+        self.declare_parameter("prev_error", 0.0)
 
         self.cmd_vel_topic = (
             self.get_parameter("cmd_vel_topic").get_parameter_value().string_value
@@ -63,6 +67,9 @@ class TunnelNavigator(Node):
         )
         self.center_deadband = (
             self.get_parameter("center_deadband").get_parameter_value().double_value
+        )
+        self.prev_error = (
+            self.get_parameter("prev_error").get_parameter_value().double_value
         )
         self.cmd_pub = self.create_publisher(Twist, self.cmd_vel_topic, 10)
         self.arm_pub = (
@@ -115,21 +122,21 @@ class TunnelNavigator(Node):
 
         if front_min < self.safe_distance:
             cmd.linear.x = 0.0
-            cmd.angular.z = self.turn_speed if left_min > right_min else -self.turn_speed
+            cmd.angular.z = self.turn_speed*5 if left_min > right_min else -self.turn_speed*5
         else:
             cmd.linear.x = self.forward_speed
-            if math.isfinite(left_min) and math.isfinite(right_min):
-                error = left_min - right_min
-                if abs(error) >= self.center_deadband:
-                    cmd.angular.z = max(
-                        -self.turn_speed,
-                        min(self.turn_speed, self.center_gain * error),
-                    )
+            error = left_min - right_min
+            d_error = error - self.prev_error
+            if abs(error) >= self.center_deadband:
+                correction = (1.2 * error) + (0.5 * d_error)
+                cmd.angular.z = max(-self.turn_speed, min(self.turn_speed, correction))
+            else:
+                cmd.angular.z = 0.0
             if left_min < self.side_clearance:
-                cmd.angular.z = -self.turn_speed
+                cmd.linear.y = -self.turn_speed
             elif right_min < self.side_clearance:
-                cmd.angular.z = self.turn_speed
-
+                cmd.linear.y = self.turn_speed
+            self.prev_error = error
         self.cmd_pub.publish(cmd)
 
     @staticmethod
