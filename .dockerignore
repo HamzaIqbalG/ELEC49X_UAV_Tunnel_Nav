@@ -1,0 +1,26 @@
+# Colcon build artifacts
+build/
+install/
+log/
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# External repos (cloned at image build time)
+ros2_ws/src/ros_gz/
+ros2_ws/src/ardupilot_gazebo/
+
+# ArduPilot runtime artifacts
+ros2_ws/eeprom.bin
+ros2_ws/mav.parm
+ros2_ws/logs/
+
+# Git / IDE
+.git
+.gitignore
+.cursor/
+*.md
+
+# Python caches
+__pycache__/
+*.pyc

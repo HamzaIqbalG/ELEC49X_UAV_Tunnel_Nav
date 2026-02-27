@@ -22,16 +22,19 @@ RUN apt-get update && apt-get install -y \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-RUN python3 -m pip install --no-cache-dir -U pip setuptools
+RUN python3 -m pip install --no-cache-dir -U pip setuptools pymavlink
 
-# Gazebo Fortress repository (OSRF)
+# Gazebo repository (OSRF) – provides both Fortress and Garden packages
 RUN curl -sSL https://packages.osrfoundation.org/gazebo.gpg \
       -o /usr/share/keyrings/gazebo-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gazebo-archive-keyring.gpg] \
 http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" \
       > /etc/apt/sources.list.d/gazebo-stable.list
 
-# Core simulation packages (stable – changes here rebuild ArduPilot layers)
+# Core simulation packages.
+# gz-fortress + libgz-sim7-dev gives us both Fortress runtime and Garden
+# dev headers. ros-humble-ros-gz (Fortress) satisfies rosdep; we overlay
+# it later with a Garden source build.
 RUN apt-get update && apt-get install -y \
     gz-fortress \
     libgz-sim7-dev \
@@ -93,13 +96,86 @@ RUN apt-get update && apt-get install -y \
     gstreamer1.0-gl \
     && rm -rf /var/lib/apt/lists/*
 
+# ── Gazebo Garden workspace ─────────────────────────────────────────
+# Builds ros_gz bridge + ardupilot_gazebo against Garden (gz-sim7).
+# This overlay takes precedence over the apt-installed Fortress ros_gz.
+ENV GZ_WS=/gz_ws
+ENV GZ_VERSION=garden
+RUN mkdir -p ${GZ_WS}/src
+WORKDIR ${GZ_WS}/src
+
+RUN git clone -b humble https://github.com/gazebosim/ros_gz.git
+
+# Clone ardupilot_gazebo and replace CMakeLists to build only
+# ArduPilotPlugin (the only plugin the iris_tunnel model needs).
+RUN git clone https://github.com/ArduPilot/ardupilot_gazebo.git && \
+    cat > ardupilot_gazebo/CMakeLists.txt << 'CMAKEOF'
+cmake_minimum_required(VERSION 3.10.2 FATAL_ERROR)
+project(ardupilot_gazebo)
+
+find_package(ament_cmake QUIET)
+if(${ament_cmake_FOUND})
+  message("Building ${PROJECT_NAME} as an ament_cmake project.")
+endif()
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(gz-cmake3 REQUIRED)
+set(GZ_CMAKE_VER ${gz-cmake3_VERSION_MAJOR})
+gz_find_package(gz-common5 REQUIRED)
+set(GZ_COMMON_VER ${gz-common5_VERSION_MAJOR})
+gz_find_package(gz-rendering7 REQUIRED)
+set(GZ_RENDERING_VER ${gz-rendering7_VERSION_MAJOR})
+gz_find_package(gz-sim7 REQUIRED)
+set(GZ_SIM_VER ${gz-sim7_VERSION_MAJOR})
+message(STATUS "Compiling against Gazebo Garden")
+
+find_package(RapidJSON REQUIRED)
+
+add_library(ArduPilotPlugin SHARED
+  src/ArduPilotPlugin.cc src/SocketUDP.cc src/Util.cc)
+target_include_directories(ArduPilotPlugin PRIVATE include)
+target_link_libraries(ArduPilotPlugin PRIVATE
+  gz-sim${GZ_SIM_VER}::gz-sim${GZ_SIM_VER})
+
+install(TARGETS ArduPilotPlugin DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config)
+install(DIRECTORY models/ DESTINATION share/${PROJECT_NAME}/models)
+install(DIRECTORY worlds/ DESTINATION share/${PROJECT_NAME}/worlds)
+
+if(${ament_cmake_FOUND})
+  ament_environment_hooks(
+    "${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in")
+  ament_environment_hooks(
+    "${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.sh.in")
+  ament_package()
+endif()
+CMAKEOF
+
+# Build with constrained parallelism to prevent OOM on resource-limited
+# hosts (e.g. WSL2 with default memory limits).
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && \
+    source ${ARDU_WS}/install/setup.bash && \
+    export MAKEFLAGS='-j2' && \
+    cd ${GZ_WS} && \
+    colcon build \
+      --packages-up-to ros_gz_bridge ros_gz_sim ros_gz_interfaces ardupilot_gazebo \
+      --parallel-workers 1 \
+      --cmake-args -DBUILD_TESTING=OFF"
+
+# ── Project workspace ───────────────────────────────────────────────
 WORKDIR /ros2_ws
 COPY ros2_ws/src /ros2_ws/src
 COPY dashboard /dashboard
-COPY docker/entrypoint.sh /ros2_ws/entrypoint.sh
-RUN chmod +x /ros2_ws/entrypoint.sh
 
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build"
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && \
+    source ${ARDU_WS}/install/setup.bash && \
+    source ${GZ_WS}/install/setup.bash && \
+    colcon build"
 
-ENTRYPOINT ["/ros2_ws/entrypoint.sh"]
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["bash"]

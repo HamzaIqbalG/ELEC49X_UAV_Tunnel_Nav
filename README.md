@@ -1,217 +1,155 @@
-# UAV Tunnel Demo (ROS 2 Humble + Gazebo Fortress)
+# UAV Tunnel Navigation (ROS 2 Humble + Gazebo Garden + ArduPilot SITL)
 
-This project builds a sandboxed, local-only simulation: a simple UAV with a
-planar LiDAR navigating a straight tunnel in Gazebo Fortress. The UAV takes off
-briefly, then moves forward while applying crude, deterministic wall avoidance
-based on the LiDAR scan.
+Autonomous UAV navigation through GPS-denied tunnel environments.  The drone
+uses a 2-D LiDAR and SLAM to build a live occupancy map while ArduPilot
+handles low-level attitude control via Software-In-The-Loop (SITL).
 
-## Compatibility and Docs
-The stack is intentionally scoped to components with clear compatibility:
-- **ROS 2 Humble (Ubuntu 22.04 LTS)**: https://docs.ros.org/en/humble/
-- **Gazebo Fortress (gz-sim7)**: https://gazebosim.org/docs/fortress
-- **ROS–Gazebo bridge (`ros_gz`)**: https://github.com/gazebosim/ros_gz
-- **Aerostack2 Gazebo Assets (`as2_gazebo_assets`)**: https://docs.ros.org/en/humble/p/as2_gazebo_assets/
+Everything runs inside Docker so the host system stays untouched.
 
-This repo includes a minimal UAV model, a Gazebo system plugin for `/cmd_vel`,
-and a ROS 2 navigation node that uses `/scan`.
+## Stack
 
-From the Aerostack2 docs, `as2_gazebo_assets` is tested on **Gazebo Fortress**
-and should match your ROS 2 version. We use the Humble package to stay
-compatible with this stack.
+| Layer | Component | Version / Branch |
+|-------|-----------|-----------------|
+| Flight controller | ArduPilot SITL (ArduCopter) | master (DDS) |
+| Simulator | Gazebo **Garden** (gz-sim 7) | Garden |
+| ROS bridge | `ros_gz` (source build) | humble |
+| ROS 2 | Humble Hawksbill | Ubuntu 22.04 |
+| SLAM | `slam_toolbox` | apt (Humble) |
 
-## Sandboxed Environment (Docker)
-All installations happen inside a container. The host system remains unchanged.
+## Quick Start
 
-### Build the image
-```bash
-cd /home/saad/UAV-Tunnel-V2
-docker build -t uav-tunnel-sim -f docker/Dockerfile .
-```
+### 1. Build the Docker image
 
-If you see DNS resolution errors during the build, retry with host networking:
 ```bash
 docker build --network=host -t uav-tunnel-sim -f docker/Dockerfile .
 ```
 
-### Run the container
-**Linux (X11):**
-```bash
-xhost +local:docker
-docker run --rm -it \
-  --env="DISPLAY" \
-  --env="QT_X11_NO_MITSHM=1" \
-  --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
-  uav-tunnel-sim
-```
+> The image bakes in ArduPilot, `ros_gz` (Garden), and `ardupilot_gazebo`.
+> First build takes 30-60 min; subsequent builds use layer caching.
 
-**WSLg (Windows Subsystem for Linux):** use the same command above; WSLg
-already exposes the display socket.
+### 2. Run the container
 
-If you prefer docker compose:
 ```bash
+xhost +local:docker          # allow GUI
 docker compose run --rm uav-sim
 ```
 
-## Build and Run (inside the container)
+Or without Compose:
 ```bash
-cd /ros2_ws
-colcon build --symlink-install
-source install/setup.bash
-ros2 launch uav_tunnel_nav bringup.launch.py
-```
-
-If you're running inside WSL2 Docker and don't have GUI forwarding,
-use the default headless mode. To force the GUI (when display is available):
-```bash
-ros2 launch uav_tunnel_nav bringup.launch.py headless:=false
-```
-
-## WSL2 + Docker GUI (Gazebo)
-WSLg already provides X11/Wayland sockets; you must pass them into the container.
-Use the helper script from the host:
-```bash
-./scripts/run_gui.sh
-```
-
-If you prefer the raw command, it must mount the WSLg sockets:
-```bash
-docker run --rm -it \
-  --env="DISPLAY=$DISPLAY" \
-  --env="WAYLAND_DISPLAY=$WAYLAND_DISPLAY" \
-  --env="XDG_RUNTIME_DIR=/mnt/wslg/runtime-dir" \
-  --env="PULSE_SERVER=/mnt/wslg/PulseServer" \
-  --env="QT_X11_NO_MITSHM=1" \
-  --env="QT_QPA_PLATFORM=xcb" \
-  --volume="/mnt/wslg/.X11-unix:/tmp/.X11-unix:rw" \
-  --volume="/mnt/wslg:/mnt/wslg:rw" \
+docker run --rm -it --net=host \
+  -e DISPLAY -e QT_X11_NO_MITSHM=1 \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
   uav-tunnel-sim
 ```
 
-Inside the container:
+### 3. Launch the simulation
+
+Inside the container (the entrypoint auto-rebuilds project packages if
+source has changed):
+
 ```bash
-cd /ros2_ws
-source install/setup.bash
-ros2 launch uav_tunnel_nav bringup.launch.py headless:=false
+ros2 launch uav_tunnel_nav bringup_ardupilot.launch.py headless:=false rviz:=true
 ```
 
-## GUI Dashboard (Trajectory + Sensors)
-The dashboard is a simple Python GUI that subscribes to odometry, ground truth
-and sensor topics and plots them live.
+This starts:
+- Gazebo Garden (tunnel world + iris_tunnel drone with ArduPilotPlugin)
+- ArduPilot SITL (ArduCopter, DDS transport)
+- `ros_gz_bridge` (clock, LiDAR scan)
+- `slam_toolbox` (async SLAM)
+- RViz2 (map + LiDAR overlay)
 
-Inside the container:
-```bash
-python3 /dashboard/uav_dashboard.py --use-sim-time
+Launch arguments:
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `headless` | `true` | Set `false` to show Gazebo GUI |
+| `rviz` | `true` | Show RViz2 |
+| `use_slam` | `true` | Run SLAM toolbox |
+| `use_sitl` | `true` | Launch ArduPilot SITL |
+
+## WSL2 Notes
+
+WSLg exposes X11/Wayland automatically. If you hit **out-of-memory crashes**
+during Docker builds, create `C:\Users\<you>\.wslconfig`:
+
+```ini
+[wsl2]
+memory=6GB
+swap=4GB
 ```
 
-Optional overrides:
-```bash
-python3 /dashboard/uav_dashboard.py \
-  --odom-topic /uav0/basic_odom \
-  --gt-pose-topic /uav0/ground_truth/pose \
-  --gt-twist-topic /uav0/ground_truth/twist
-```
-
-## macOS (UTM Ubuntu VM) Build + Run
-
-### 2) Install Docker inside the VM
-```bash
-sudo apt-get update
-sudo apt-get install -y docker.io
-sudo usermod -aG docker $USER
-newgrp docker
-```
-
-### 3) Clone and build
-```bash
-git clone <YOUR_REPO_URL>
-cd UAV-Tunnel-V2
-docker build -t uav-tunnel-sim -f docker/Dockerfile .
-```
-
-### 4) Run Gazebo GUI inside the VM
-```bash
-xhost +local:docker
-docker run --rm -it \
-  --env="DISPLAY" \
-  --env="QT_X11_NO_MITSHM=1" \
-  --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
-  uav-tunnel-sim
-```
-
-Inside the container:
-```bash
-cd /ros2_ws
-source install/setup.bash
-ros2 launch uav_tunnel_nav bringup_as2.launch.py headless:=false rviz:=true
-```
-
-### 5) Optional dashboard (inside container)
-```bash
-python3 /dashboard/uav_dashboard.py --use-sim-time
-```
-
-To start RViz2 with the LiDAR display:
-```bash
-ros2 launch uav_tunnel_nav bringup.launch.py headless:=false rviz:=true
-```
+Then restart WSL (`wsl --shutdown`).
 
 ## Project Layout
-- `docker/`: sandbox image and entrypoint
-- `ros2_ws/src/uav_tunnel_gz`: Gazebo Fortress world, UAV model, cmd_vel plugin
-- `ros2_ws/src/uav_tunnel_nav`: ROS 2 node + launch to run sim and bridge
 
-## Model and Sensors
-- The UAV is a quadcopter-style model with body, arms, rotors, and an IMU.
-- A 2D GPU LiDAR is mounted on a dedicated `lidar_link`.
-- The LiDAR scan is republished as `/scan_fixed` with `frame_id=base_link`
-  to make RViz visualization reliable.
- - Additional sensors in the AS2 configuration: barometer (`air_pressure`),
-   magnetometer, and a downward-facing VGA camera for basic VIO wiring.
+```
+docker/
+  Dockerfile          # Full build: ROS 2 + Gazebo Garden + ArduPilot + ros_gz
+  entrypoint.sh       # Sources overlays, auto-rebuilds project packages
+ros2_ws/src/
+  uav_tunnel_gz/      # Gazebo world (tunnel.sdf) and drone model (iris_tunnel)
+  uav_tunnel_nav/     # ROS 2 nodes, launch files, configs
+dashboard/            # Optional live trajectory + sensor GUI
+compose.yaml          # Docker Compose service definition
+```
 
-## Aerostack2 Quadcopter Option
-Aerostack2 provides **Fortress-compatible** drone and sensor models. The assets
-include the `quadrotor_base` model and a `planar_lidar` payload. The quadrotor
-SDF template enables the Gazebo multicopter velocity controller, so publishing
-to `cmd_vel` remains valid.
+## Architecture
 
-To use the Aerostack2 model in the tunnel:
+```mermaid
+flowchart LR
+  subgraph container [Docker Container]
+    GZ[Gazebo Garden]
+    AP[ArduPilot SITL]
+    Bridge[ros_gz_bridge]
+    SLAM[slam_toolbox]
+    RViz[RViz2]
+  end
+
+  GZ -- "JSON socket" --> AP
+  AP -- "DDS /ap/tf" --> Bridge
+  GZ -- "/lidar, /clock" --> Bridge
+  Bridge -- "/scan, /clock, /tf" --> SLAM
+  SLAM -- "/map" --> RViz
+  Bridge -- "/scan_fixed" --> RViz
+```
+
+## Key Topics
+
+| Topic | Type | Source |
+|-------|------|--------|
+| `/scan` | `sensor_msgs/LaserScan` | ros_gz_bridge (from Gazebo LiDAR) |
+| `/scan_fixed` | `sensor_msgs/LaserScan` | `scan_reframe` node (frame_id -> base_link) |
+| `/clock` | `rosgraph_msgs/Clock` | ros_gz_bridge |
+| `/ap/tf` | `tf2_msgs/TFMessage` | ArduPilot DDS |
+| `/tf` | `tf2_msgs/TFMessage` | relay from `/ap/tf` |
+| `/map` | `nav_msgs/OccupancyGrid` | slam_toolbox |
+
+## Legacy Launch Files
+
+The older simulation modes are still available:
+
 ```bash
+# Fortress + cmd_vel direct control
+ros2 launch uav_tunnel_nav bringup.launch.py headless:=false
+
+# Fortress + Aerostack2 quadrotor model
 ros2 launch uav_tunnel_nav bringup_as2.launch.py headless:=false rviz:=true
 ```
 
-Key topics when using Aerostack2:
-- Command: `/gz/uav0/cmd_vel`
-- LiDAR scan: `/uav0/sensor_measurements/lidar/scan` (republished as `/scan_fixed`)
- - IMU: `/uav0/sensor_measurements/imu`
- - Magnetometer: `/uav0/sensor_measurements/magnetometer`
- - Barometer: `/uav0/sensor_measurements/air_pressure`
- - Basic odometry: `/uav0/basic_odom`
+## GUI Dashboard
 
-## Behavior
-- The UAV spawns at the tunnel entrance.
-- It takes off for `takeoff_seconds` using a vertical velocity command.
-- It moves forward unless a front obstacle is closer than `safe_distance`.
-- It turns away from the closer side wall when blocked.
+```bash
+python3 /dashboard/uav_dashboard.py --use-sim-time
+```
 
-You can tune speeds and thresholds via ROS parameters in
-`uav_tunnel_nav/tunnel_navigator.py`.
+## Development Workflow
 
-Key navigation parameters (can be overridden via launch):
-- `takeoff_seconds`: duration of upward velocity
-- `takeoff_speed`: upward velocity used for takeoff
- - `enable_arm`: enable arming via `/gz/uav0/arm`
- - `arm_seconds`: duration to publish the arm signal before takeoff
-- `center_gain`: yaw gain to keep the drone centered in the corridor
-- `center_deadband`: ignore small left/right differences (meters)
+The `compose.yaml` bind-mounts only `uav_tunnel_gz/` and `uav_tunnel_nav/`
+source directories. Edit files on the host; the entrypoint detects changes and
+runs an incremental `colcon build` on container start.  To manually rebuild:
 
-LiDAR adjustments:
-- The local `planar_lidar` model overrides the AS2 asset to provide a 360° scan.
-- The LiDAR payload is mounted slightly below the quadcopter (`z = -0.05`).
-
-Basic odometry:
-- `basic_odometry` composes a simple odometry estimate without EKF fusion.
-- Uses IMU integration for short-term velocity/position, barometer for altitude,
-  magnetometer for yaw, and (when available) a VIO odometry topic for drift
-  correction. **LiDAR is not used for odometry**.
-- Publishes TF `odom -> base_link` and `nav_msgs/Odometry` on `/uav0/basic_odom`.
-- Publishes dashboard-friendly stats on `/uav0/basic_odom/stats`.
+```bash
+cd /ros2_ws
+colcon build --packages-select uav_tunnel_gz uav_tunnel_nav
+source install/setup.bash
+```
