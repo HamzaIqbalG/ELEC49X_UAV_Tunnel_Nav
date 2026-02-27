@@ -11,4 +11,6 @@ if [ -f /ros2_ws/install/setup.bash ]; then
   source /ros2_ws/install/setup.bash
 fi
 
+export GZ_VERSION="${GZ_VERSION:-garden}"
+
 exec "$@"

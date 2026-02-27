@@ -1,1 +1,19 @@
 __pycache__/
+*.pyc
+
+# Colcon build artifacts (top-level and workspace)
+build/
+install/
+log/
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# ArduPilot SITL runtime artifacts
+ros2_ws/eeprom.bin
+ros2_ws/mav.parm
+ros2_ws/logs/
+
+# External repos cloned at build time (not vendored)
+ros2_ws/src/ros_gz/
+ros2_ws/src/ardupilot_gazebo/

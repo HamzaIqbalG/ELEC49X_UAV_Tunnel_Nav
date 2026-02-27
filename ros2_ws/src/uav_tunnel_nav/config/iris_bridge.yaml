@@ -1,0 +1,15 @@
+# ros_gz_bridge config – maps Gazebo topics to ROS 2.
+# Template variables {{ world_name }} and {{ model_name }} are replaced
+# at launch time by bringup_ardupilot.launch.py.
+
+- ros_topic_name: /clock
+  gz_topic_name: /clock
+  ros_type_name: rosgraph_msgs/msg/Clock
+  gz_type_name: gz.msgs.Clock
+  direction: GZ_TO_ROS
+
+- ros_topic_name: /scan
+  gz_topic_name: /world/{{ world_name }}/model/{{ model_name }}/link/lidar_link/sensor/lidar/scan
+  ros_type_name: sensor_msgs/msg/LaserScan
+  gz_type_name: gz.msgs.LaserScan
+  direction: GZ_TO_ROS

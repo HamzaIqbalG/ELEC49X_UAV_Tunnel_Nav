@@ -78,10 +78,19 @@ RUN /bin/bash -c "source /opt/ros/humble/setup.bash && \
 
 USER root
 
-# Optional ROS packages (add/remove here without rebuilding ArduPilot)
+# Optional ROS packages and ArduPilot-Gazebo plugin build deps.
+# Changing this layer does NOT rebuild ArduPilot (cache preserved).
 RUN apt-get update && apt-get install -y \
     ros-humble-robot-localization \
     ros-humble-slam-toolbox \
+    ros-humble-topic-tools \
+    rapidjson-dev \
+    libopencv-dev \
+    libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-libav \
+    gstreamer1.0-gl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /ros2_ws

@@ -1,13 +1,13 @@
 services:
   uav-sim:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
+    image: uav-tunnel-sim
+    entrypoint: ["/entrypoint.sh"]
+    command: bash
     environment:
       - DISPLAY=${DISPLAY}
       - QT_X11_NO_MITSHM=1
     volumes:
       - ./ros2_ws:/ros2_ws
+      - ./docker/entrypoint.sh:/entrypoint.sh:ro
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     network_mode: host
-    command: bash
