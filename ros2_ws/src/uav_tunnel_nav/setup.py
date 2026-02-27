@@ -28,7 +28,7 @@ setup(
         ),
         (f"share/{package_name}/rviz", ["rviz/uav_tunnel.rviz"]),
     ],
-    install_requires=["setuptools"],
+    install_requires=["setuptools", "pymavlink"],
     zip_safe=True,
     maintainer="UAV Tunnel",
     maintainer_email="dev@example.com",
@@ -44,6 +44,7 @@ setup(
             "imu_reframe = uav_tunnel_nav.imu_reframe:main",
             "vio_watchdog = uav_tunnel_nav.vio_watchdog:main",
             "gt_to_vio_odom = uav_tunnel_nav.gt_to_vio_odom:main",
+            "ardupilot_control = uav_tunnel_nav.ardupilot_control:main",
         ],
     },
 )

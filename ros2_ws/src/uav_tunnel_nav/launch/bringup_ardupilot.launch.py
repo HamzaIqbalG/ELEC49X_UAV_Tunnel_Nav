@@ -76,6 +76,8 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument("headless", default_value="true"),
             DeclareLaunchArgument("rviz", default_value="true"),
             DeclareLaunchArgument("use_slam", default_value="true"),
+            DeclareLaunchArgument("use_nav", default_value="true",
+                                 description="Run tunnel navigator + ArduPilot control."),
             DeclareLaunchArgument(
                 "use_sitl",
                 default_value="true" if sim_vehicle else "false",
@@ -179,6 +181,45 @@ def generate_launch_description() -> LaunchDescription:
                 arguments=["0", "0", "0", "0", "0", "0", "1", "map", "odom"],
                 condition=UnlessCondition(LaunchConfiguration("use_slam")),
                 output="screen",
+            ),
+
+            # ── ArduPilot MAVLink control ─────────────────────────────
+            Node(
+                package="uav_tunnel_nav",
+                executable="ardupilot_control",
+                parameters=[
+                    {
+                        "use_sim_time": True,
+                        "connection": "tcp:127.0.0.1:5760",
+                        "target_altitude": 1.0,
+                        "takeoff_speed": 0.5,
+                        "cmd_vel_topic": "/cmd_vel",
+                    }
+                ],
+                output="screen",
+                condition=IfCondition(LaunchConfiguration("use_nav")),
+            ),
+
+            # ── LiDAR wall-following navigator ───────────────────────
+            Node(
+                package="uav_tunnel_nav",
+                executable="tunnel_navigator",
+                parameters=[
+                    {
+                        "use_sim_time": True,
+                        "scan_topic": "/scan",
+                        "cmd_vel_topic": "/cmd_vel",
+                        "takeoff_seconds": 0.0,
+                        "forward_speed": 0.4,
+                        "turn_speed": 0.4,
+                        "safe_distance": 1.5,
+                        "side_clearance": 0.8,
+                        "center_gain": 0.6,
+                        "center_deadband": 0.1,
+                    }
+                ],
+                output="screen",
+                condition=IfCondition(LaunchConfiguration("use_nav")),
             ),
 
             # ── RViz ─────────────────────────────────────────────────
