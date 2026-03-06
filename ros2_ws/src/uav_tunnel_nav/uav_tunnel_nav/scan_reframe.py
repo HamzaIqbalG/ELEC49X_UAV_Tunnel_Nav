@@ -1,4 +1,7 @@
 from typing import Optional
+import json
+import time
+from pathlib import Path
 
 import rclpy
 from rclpy.node import Node
@@ -19,13 +22,35 @@ class ScanReframe(Node):
         output_topic = (
             self.get_parameter("output_topic").get_parameter_value().string_value
         )
-        self.frame_id = self.get_parameter("frame_id").get_parameter_value().string_value
+        self.frame_id = self.get_parameter(
+            "frame_id"
+        ).get_parameter_value().string_value
+
+        self._log_path = Path("/ros2_ws/src/uav_tunnel_nav/debug-967540.log")
 
         reliable_qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE)
         self.pub = self.create_publisher(LaserScan, output_topic, reliable_qos)
         self.sub = self.create_subscription(
             LaserScan, input_topic, self.on_scan, qos_profile_sensor_data
         )
+
+    # #region agent log
+    def _agent_log(self, hypothesis_id: str, msg: str, data: dict) -> None:
+        try:
+            payload = {
+                "sessionId": "967540",
+                "runId": "pre-fix",
+                "hypothesisId": hypothesis_id,
+                "location": "scan_reframe.py",
+                "message": msg,
+                "data": data,
+                "timestamp": int(time.time() * 1000),
+            }
+            with self._log_path.open("a") as f:
+                f.write(json.dumps(payload) + "\n")
+        except Exception:
+            pass
+    # #endregion
 
     def on_scan(self, msg: LaserScan) -> None:
         out = LaserScan()
@@ -42,6 +67,14 @@ class ScanReframe(Node):
         out.range_max = msg.range_max
         out.ranges = msg.ranges
         out.intensities = msg.intensities
+        self._agent_log(
+            "H3",
+            "SCAN_RECEIVED",
+            {
+                "ranges_len": len(msg.ranges),
+                "stamp_sec": msg.header.stamp.sec,
+            },
+        )
         self.pub.publish(out)
 
 

@@ -8,6 +8,8 @@ velocity commands to ArduPilot body-frame setpoints using GUIDED_NOGPS mode.
 import threading
 import time
 from enum import Enum, auto
+import json
+from pathlib import Path
 
 import rclpy
 from geometry_msgs.msg import Twist
@@ -29,7 +31,7 @@ class FlightPhase(Enum):
 class ArduPilotControl(Node):
     """Bridges ROS 2 cmd_vel commands to ArduPilot MAVLink velocity setpoints."""
 
-    GUIDED_NOGPS = 20
+    GUIDED_MODE = 4  # Phase 1: GPS-based GUIDED; Phase 2 will switch to GUIDED_NOGPS (20)
     # SET_POSITION_TARGET_LOCAL_NED type_mask:
     #   ignore position (bits 0-2), use velocity (bits 3-5 clear),
     #   ignore accel (bits 6-8), ignore yaw (bit 10), use yaw_rate (bit 11 clear)
@@ -59,9 +61,11 @@ class ArduPilotControl(Node):
         self._phase = FlightPhase.CONNECTING
         self._armed = False
         self._mode = ""
-        self._alt = 0.0
+        self._rel_alt = 0.0
         self._phase_entered = time.monotonic()
         self._last_heartbeat_sent = 0.0
+        self._last_statustext = ""
+        self._takeoff_cmd_sent = False
 
         self._last_cmd = Twist()
         self._last_cmd_time = 0.0
@@ -78,10 +82,32 @@ class ArduPilotControl(Node):
         )
         self._connect_thread.start()
 
+        self._log_path = Path("/ros2_ws/src/uav_tunnel_nav/debug-967540.log")
+
         self._timer = self.create_timer(1.0 / rate, self._tick)
         self.get_logger().info(
             f"ArduPilot control starting (target: {self._conn_str})"
         )
+
+    # #region agent log
+    def _agent_log(self, hypothesis_id: str, msg: str, data: dict) -> None:
+        """Lightweight NDJSON logger for debug mode."""
+        try:
+            payload = {
+                "sessionId": "967540",
+                "runId": "pre-fix",
+                "hypothesisId": hypothesis_id,
+                "location": "ardupilot_control.py",
+                "message": msg,
+                "data": data,
+                "timestamp": int(time.time() * 1000),
+            }
+            with self._log_path.open("a") as f:
+                f.write(json.dumps(payload) + "\n")
+        except Exception:
+            # Never let logging break control loop
+            pass
+    # #endregion
 
     # ── helpers ──────────────────────────────────────────────────────
 
@@ -96,6 +122,8 @@ class ArduPilotControl(Node):
             self.get_logger().info(f"Phase: {self._phase.name} -> {phase.name}")
             self._phase = phase
             self._phase_entered = time.monotonic()
+            if phase == FlightPhase.TAKING_OFF:
+                self._takeoff_cmd_sent = False
 
     def _phase_age(self) -> float:
         return time.monotonic() - self._phase_entered
@@ -175,6 +203,17 @@ class ArduPilotControl(Node):
             0, 0, 0, 0, 0,
         )
 
+    def _send_takeoff(self, alt_m: float) -> None:
+        """Request a guided takeoff, like MAVProxy `takeoff <alt>`."""
+        self._mav.mav.command_long_send(
+            self._mav.target_system,
+            self._mav.target_component,
+            mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,
+            0,
+            0, 0, 0, 0, 0, 0,
+            alt_m,
+        )
+
     def _send_velocity_ned(self, vx: float, vy: float, vz: float,
                            yaw_rate: float) -> None:
         """Send body-frame velocity. NED convention: +vx forward, +vy right, +vz down."""
@@ -207,10 +246,34 @@ class ArduPilotControl(Node):
                     5: "LOITER", 6: "RTL", 9: "LAND", 20: "GUIDED_NOGPS",
                 }
                 self._mode = _MODES.get(msg.custom_mode, f"MODE_{msg.custom_mode}")
-            elif t == "VFR_HUD":
-                self._alt = msg.alt
+                self._agent_log(
+                    "H1",
+                    "HEARTBEAT",
+                    {
+                        "mode": self._mode,
+                        "armed": self._armed,
+                        "phase": self._phase.name,
+                    },
+                )
             elif t == "GLOBAL_POSITION_INT":
-                self._alt = msg.relative_alt / 1000.0
+                self._rel_alt = msg.relative_alt / 1000.0
+                self._agent_log(
+                    "H1",
+                    "GLOBAL_POSITION_INT",
+                    {
+                        "rel_alt": self._rel_alt,
+                        "phase": self._phase.name,
+                    },
+                )
+            elif t == "STATUSTEXT":
+                # Useful for catching pre-arm/failsafe reasons and unexpected disarms.
+                txt = getattr(msg, "text", "").strip()
+                if txt:
+                    self._last_statustext = txt
+                    # Severity: 0=EMERGENCY ... 7=DEBUG. ArduPilot uses 3/4 for important warnings.
+                    sev = getattr(msg, "severity", 7)
+                    if sev <= 4:
+                        self.get_logger().warn(f"AP: {txt}")
 
     # ── main control tick (10 Hz) ────────────────────────────────────
 
@@ -238,15 +301,15 @@ class ArduPilotControl(Node):
 
         if phase == FlightPhase.WAITING_FOR_EKF:
             if self._phase_age() > self._ekf_wait:
-                self.get_logger().info("EKF wait complete, setting GUIDED_NOGPS")
+                self.get_logger().info("EKF wait complete, setting GUIDED")
                 self._set_phase(FlightPhase.SETTING_MODE)
 
         elif phase == FlightPhase.SETTING_MODE:
-            if self._mode == "GUIDED_NOGPS":
-                self.get_logger().info("GUIDED_NOGPS confirmed, arming")
+            if self._mode == "GUIDED":
+                self.get_logger().info("GUIDED confirmed, arming")
                 self._set_phase(FlightPhase.ARMING)
             elif self._phase_age() > 2.0:
-                self._send_set_mode(self.GUIDED_NOGPS)
+                self._send_set_mode(self.GUIDED_MODE)
                 self._phase_entered = time.monotonic()
 
         elif phase == FlightPhase.ARMING:
@@ -258,16 +321,21 @@ class ArduPilotControl(Node):
                 self._phase_entered = time.monotonic()
 
         elif phase == FlightPhase.TAKING_OFF:
-            if self._alt >= self._target_alt - self._takeoff_tol:
+            if self._rel_alt >= self._target_alt - self._takeoff_tol:
                 self.get_logger().info(
-                    f"Altitude {self._alt:.2f} m reached — navigating"
+                    f"Altitude {self._rel_alt:.2f} m reached — navigating"
                 )
                 self._set_phase(FlightPhase.NAVIGATING)
             elif self._phase_age() > 30.0:
                 self.get_logger().warn("Takeoff timeout — entering nav anyway")
                 self._set_phase(FlightPhase.NAVIGATING)
-            else:
-                self._send_velocity_ned(0, 0, -self._takeoff_speed, 0)
+            elif not self._takeoff_cmd_sent and self._phase_age() > 2.0:
+                self.get_logger().info(
+                    f"Sending NAV_TAKEOFF to {self._target_alt:.1f} m "
+                    f"(rel_alt={self._rel_alt:.2f})"
+                )
+                self._send_takeoff(self._target_alt)
+                self._takeoff_cmd_sent = True
 
         elif phase == FlightPhase.NAVIGATING:
             self._navigate()
@@ -297,7 +365,8 @@ class ArduPilotControl(Node):
         msg = String()
         msg.data = (
             f"{self._phase.name} | mode={self._mode} "
-            f"armed={self._armed} alt={self._alt:.2f}m"
+            f"armed={self._armed} alt={self._rel_alt:.2f}m"
+            + (f" | AP: {self._last_statustext}" if self._last_statustext else "")
         )
         self._state_pub.publish(msg)
 
