@@ -65,8 +65,12 @@ def generate_launch_description() -> LaunchDescription:
 
     sim_vehicle = _find_sim_vehicle()
 
+    ardu_gz_models = "/gz_ws/src/ardupilot_gazebo/models"
     cur_res = os.environ.get("GZ_SIM_RESOURCE_PATH", "")
-    resource_path = _prepend_env(models_path, _prepend_env(world_path, cur_res))
+    resource_path = _prepend_env(
+        models_path,
+        _prepend_env(world_path, _prepend_env(ardu_gz_models, cur_res)),
+    )
 
     bridge_config_file = _render_bridge_config(bridge_template)
 
@@ -121,10 +125,11 @@ def generate_launch_description() -> LaunchDescription:
                 cmd=[
                     sim_vehicle or "echo",
                     "-v", "ArduCopter",
-                    "--model", "json",
+                    "-f", "gazebo-iris",
+                    "--model", "JSON",
                     "--add-param-file", tunnel_parm,
-                    "--enable-DDS",
                     "-I0",
+                    "-w",
                     "--no-rebuild",
                     "--no-mavproxy",
                 ],
@@ -189,7 +194,7 @@ def generate_launch_description() -> LaunchDescription:
                 executable="ardupilot_control",
                 parameters=[
                     {
-                        "use_sim_time": True,
+                        "use_sim_time": False,
                         "connection": "tcp:127.0.0.1:5760",
                         "target_altitude": 1.0,
                         "takeoff_speed": 0.5,

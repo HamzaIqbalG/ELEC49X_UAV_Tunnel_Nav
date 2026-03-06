@@ -1,3 +1,5 @@
+DDS_ENABLE 0
+
 # Iris X-frame for tunnel navigation (no gimbal)
 FRAME_CLASS 1
 FRAME_TYPE 1
@@ -14,11 +16,6 @@ WPNAV_SPEED_DN 100
 WPNAV_SPEED_UP 150
 ANGLE_MAX 2000
 
-# Disable GPS requirement (tunnel has no GPS)
+# Phase 1: use SITL simulated GPS so EKF has full state feedback.
+# Will be replaced with ExternalNav (SLAM) sources in Phase 2.
 ARMING_CHECK 0
-GPS_TYPE 0
-EK3_SRC1_POSXY 0
-EK3_SRC1_VELXY 0
-EK3_SRC1_POSZ 1
-EK3_SRC1_VELZ 0
-EK3_SRC1_YAW 1

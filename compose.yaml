@@ -14,4 +14,8 @@ services:
       - ./ros2_ws/src/uav_tunnel_nav:/ros2_ws/src/uav_tunnel_nav
       - ./docker/entrypoint.sh:/entrypoint.sh:ro
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ardupilot_build:/ardu_ws/src/ardupilot/build
     network_mode: host
+
+volumes:
+  ardupilot_build:
