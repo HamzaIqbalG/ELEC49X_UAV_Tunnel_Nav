@@ -9,6 +9,7 @@ services:
     environment:
       - DISPLAY=${DISPLAY}
       - QT_X11_NO_MITSHM=1
+      - GZ_PARTITION=tunnel
     volumes:
       - ./ros2_ws/src/uav_tunnel_gz:/ros2_ws/src/uav_tunnel_gz
       - ./ros2_ws/src/uav_tunnel_nav:/ros2_ws/src/uav_tunnel_nav

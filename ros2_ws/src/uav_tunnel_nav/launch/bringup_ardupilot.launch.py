@@ -95,6 +95,7 @@ def generate_launch_description() -> LaunchDescription:
 
             # ── Environment ──────────────────────────────────────────
             SetEnvironmentVariable("GZ_SIM_RESOURCE_PATH", resource_path),
+            SetEnvironmentVariable("GZ_PARTITION", WORLD_NAME),
 
             # ── Gazebo server (gz sim = Garden) ──────────────────────
             ExecuteProcess(
@@ -213,7 +214,7 @@ def generate_launch_description() -> LaunchDescription:
                 executable="external_nav_bridge",
                 parameters=[
                     {
-                        "use_sim_time": False,
+                        "use_sim_time": True,
                         "connection": "tcp:127.0.0.1:5762",
                         "publish_rate": 20.0,
                         "map_frame": "map",
