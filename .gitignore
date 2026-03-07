@@ -17,4 +17,4 @@ ros2_ws/logs/
 # External repos cloned at build time (not vendored)
 ros2_ws/src/ros_gz/
 ros2_ws/src/ardupilot_gazebo/
-ros2_ws/src/uav_tunnel_nav/debug-*.log
+
