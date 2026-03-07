@@ -12,8 +12,6 @@ Flight mode is configurable via the 'flight_mode' ROS parameter:
 import threading
 import time
 from enum import Enum, auto
-import json
-from pathlib import Path
 
 import rclpy
 from geometry_msgs.msg import Twist
@@ -100,33 +98,11 @@ class ArduPilotControl(Node):
         )
         self._connect_thread.start()
 
-        self._log_path = Path("/ros2_ws/src/uav_tunnel_nav/debug-967540.log")
-
         self._timer = self.create_timer(1.0 / rate, self._tick)
         self.get_logger().info(
             f"ArduPilot control starting — {self._conn_str}, "
             f"flight_mode={self._flight_mode_name} ({self._flight_mode_id})"
         )
-
-    # #region agent log
-    def _agent_log(self, hypothesis_id: str, msg: str, data: dict) -> None:
-        """Lightweight NDJSON logger for debug mode."""
-        try:
-            payload = {
-                "sessionId": "967540",
-                "runId": "pre-fix",
-                "hypothesisId": hypothesis_id,
-                "location": "ardupilot_control.py",
-                "message": msg,
-                "data": data,
-                "timestamp": int(time.time() * 1000),
-            }
-            with self._log_path.open("a") as f:
-                f.write(json.dumps(payload) + "\n")
-        except Exception:
-            # Never let logging break control loop
-            pass
-    # #endregion
 
     # ── helpers ──────────────────────────────────────────────────────
 
@@ -261,25 +237,8 @@ class ArduPilotControl(Node):
                     msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED
                 )
                 self._mode = self._MODES.get(msg.custom_mode, f"MODE_{msg.custom_mode}")
-                self._agent_log(
-                    "H1",
-                    "HEARTBEAT",
-                    {
-                        "mode": self._mode,
-                        "armed": self._armed,
-                        "phase": self._phase.name,
-                    },
-                )
             elif t == "GLOBAL_POSITION_INT":
                 self._rel_alt = msg.relative_alt / 1000.0
-                self._agent_log(
-                    "H1",
-                    "GLOBAL_POSITION_INT",
-                    {
-                        "rel_alt": self._rel_alt,
-                        "phase": self._phase.name,
-                    },
-                )
             elif t == "STATUSTEXT":
                 # Useful for catching pre-arm/failsafe reasons and unexpected disarms.
                 txt = getattr(msg, "text", "").strip()

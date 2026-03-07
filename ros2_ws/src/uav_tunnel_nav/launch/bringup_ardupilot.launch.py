@@ -10,6 +10,7 @@ from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
     SetEnvironmentVariable,
+    TimerAction,
 )
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
@@ -110,20 +111,25 @@ def generate_launch_description() -> LaunchDescription:
                 condition=UnlessCondition(LaunchConfiguration("headless")),
             ),
 
-            # ── Spawn drone via gz service ───────────────────────────
-            ExecuteProcess(
-                cmd=[
-                    "gz", "service",
-                    "-s", f"/world/{WORLD_NAME}/create",
-                    "--reqtype", "gz.msgs.EntityFactory",
-                    "--reptype", "gz.msgs.Boolean",
-                    "--timeout", "5000",
-                    "--req",
-                    f'sdf_filename: "{model_sdf}" '
-                    f'name: "{MODEL_NAME}" '
-                    f'pose: {{position: {{z: 0.2}}}}',
+            # ── Spawn drone via gz service (delayed to let Gazebo start) ─
+            TimerAction(
+                period=15.0,
+                actions=[
+                    ExecuteProcess(
+                        cmd=[
+                            "gz", "service",
+                            "-s", f"/world/{WORLD_NAME}/create",
+                            "--reqtype", "gz.msgs.EntityFactory",
+                            "--reptype", "gz.msgs.Boolean",
+                            "--timeout", "5000",
+                            "--req",
+                            f'sdf_filename: "{model_sdf}" '
+                            f'name: "{MODEL_NAME}" '
+                            f'pose: {{position: {{z: 0.2}}}}',
+                        ],
+                        output="screen",
+                    ),
                 ],
-                output="screen",
             ),
 
             # ── ArduPilot SITL ───────────────────────────────────────
