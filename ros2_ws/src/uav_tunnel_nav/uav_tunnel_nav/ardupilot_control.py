@@ -1,8 +1,12 @@
-"""ArduPilot SITL flight controller for GPS-denied tunnel navigation.
+"""ArduPilot SITL flight controller for tunnel navigation.
 
 Connects to ArduPilot SITL via MAVLink (pymavlink), manages the flight
 state machine (arm -> takeoff -> navigate), and bridges ROS 2 /cmd_vel
-velocity commands to ArduPilot body-frame setpoints using GUIDED_NOGPS mode.
+velocity commands to ArduPilot body-frame setpoints.
+
+Flight mode is configurable via the 'flight_mode' ROS parameter:
+  4  = GUIDED       (GPS-based,    Phase 1)
+  20 = GUIDED_NOGPS (GPS-denied,   Phase 2, default)
 """
 
 import threading
@@ -31,7 +35,12 @@ class FlightPhase(Enum):
 class ArduPilotControl(Node):
     """Bridges ROS 2 cmd_vel commands to ArduPilot MAVLink velocity setpoints."""
 
-    GUIDED_MODE = 4  # Phase 1: GPS-based GUIDED; Phase 2 will switch to GUIDED_NOGPS (20)
+    # Known ArduCopter custom-mode IDs
+    _MODES = {
+        0: "STABILIZE", 2: "ALT_HOLD", 3: "AUTO", 4: "GUIDED",
+        5: "LOITER", 6: "RTL", 9: "LAND", 20: "GUIDED_NOGPS",
+    }
+
     # SET_POSITION_TARGET_LOCAL_NED type_mask:
     #   ignore position (bits 0-2), use velocity (bits 3-5 clear),
     #   ignore accel (bits 6-8), ignore yaw (bit 10), use yaw_rate (bit 11 clear)
@@ -48,6 +57,8 @@ class ArduPilotControl(Node):
         self.declare_parameter("control_rate", 10.0)
         self.declare_parameter("cmd_vel_timeout", 1.0)
         self.declare_parameter("ekf_wait_s", 10.0)
+        # flight_mode: 4 = GUIDED (GPS), 20 = GUIDED_NOGPS (Phase 2 default)
+        self.declare_parameter("flight_mode", 20)
 
         self._conn_str = self._param_str("connection")
         self._target_alt = self._param_float("target_altitude")
@@ -56,6 +67,13 @@ class ArduPilotControl(Node):
         self._cmd_vel_timeout = self._param_float("cmd_vel_timeout")
         self._ekf_wait = self._param_float("ekf_wait_s")
         rate = self._param_float("control_rate")
+
+        self._flight_mode_id = (
+            self.get_parameter("flight_mode").get_parameter_value().integer_value
+        )
+        self._flight_mode_name = self._MODES.get(
+            self._flight_mode_id, f"MODE_{self._flight_mode_id}"
+        )
 
         self._mav = None
         self._phase = FlightPhase.CONNECTING
@@ -86,7 +104,8 @@ class ArduPilotControl(Node):
 
         self._timer = self.create_timer(1.0 / rate, self._tick)
         self.get_logger().info(
-            f"ArduPilot control starting (target: {self._conn_str})"
+            f"ArduPilot control starting — {self._conn_str}, "
+            f"flight_mode={self._flight_mode_name} ({self._flight_mode_id})"
         )
 
     # #region agent log
@@ -241,11 +260,7 @@ class ArduPilotControl(Node):
                 self._armed = bool(
                     msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED
                 )
-                _MODES = {
-                    0: "STABILIZE", 2: "ALT_HOLD", 3: "AUTO", 4: "GUIDED",
-                    5: "LOITER", 6: "RTL", 9: "LAND", 20: "GUIDED_NOGPS",
-                }
-                self._mode = _MODES.get(msg.custom_mode, f"MODE_{msg.custom_mode}")
+                self._mode = self._MODES.get(msg.custom_mode, f"MODE_{msg.custom_mode}")
                 self._agent_log(
                     "H1",
                     "HEARTBEAT",
@@ -301,15 +316,17 @@ class ArduPilotControl(Node):
 
         if phase == FlightPhase.WAITING_FOR_EKF:
             if self._phase_age() > self._ekf_wait:
-                self.get_logger().info("EKF wait complete, setting GUIDED")
+                self.get_logger().info(
+                    f"EKF wait complete, setting {self._flight_mode_name}"
+                )
                 self._set_phase(FlightPhase.SETTING_MODE)
 
         elif phase == FlightPhase.SETTING_MODE:
-            if self._mode == "GUIDED":
-                self.get_logger().info("GUIDED confirmed, arming")
+            if self._mode == self._flight_mode_name:
+                self.get_logger().info(f"{self._flight_mode_name} confirmed, arming")
                 self._set_phase(FlightPhase.ARMING)
             elif self._phase_age() > 2.0:
-                self._send_set_mode(self.GUIDED_MODE)
+                self._send_set_mode(self._flight_mode_id)
                 self._phase_entered = time.monotonic()
 
         elif phase == FlightPhase.ARMING:

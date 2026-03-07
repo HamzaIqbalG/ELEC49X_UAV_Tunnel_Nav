@@ -16,6 +16,22 @@ WPNAV_SPEED_DN 100
 WPNAV_SPEED_UP 150
 ANGLE_MAX 2000
 
-# Phase 1: use SITL simulated GPS so EKF has full state feedback.
-# Will be replaced with ExternalNav (SLAM) sources in Phase 2.
+# Phase 2: GPS-denied navigation using SLAM external nav.
+# Disable GPS so EKF3 does not wait for a GPS fix.
+GPS_TYPE 0
+
+# EKF3 configuration — use ExternalNav (source 6) for horizontal position
+# and yaw; keep barometer (source 1) for vertical to avoid SLAM Z drift.
+AHRS_EKF_TYPE 3
+EK3_ENABLE 1
+EK3_SRC1_POSXY 6
+EK3_SRC1_VELXY 6
+EK3_SRC1_POSZ 1
+EK3_SRC1_VELZ 0
+EK3_SRC1_YAW 6
+
+# Enable vision position input processing in ArduPilot.
+VISO_TYPE 1
+
+# Disable all arming checks so the vehicle can arm without GPS.
 ARMING_CHECK 0

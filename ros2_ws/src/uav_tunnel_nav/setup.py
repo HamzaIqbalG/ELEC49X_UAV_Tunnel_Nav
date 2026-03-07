@@ -45,6 +45,7 @@ setup(
             "vio_watchdog = uav_tunnel_nav.vio_watchdog:main",
             "gt_to_vio_odom = uav_tunnel_nav.gt_to_vio_odom:main",
             "ardupilot_control = uav_tunnel_nav.ardupilot_control:main",
+            "external_nav_bridge = uav_tunnel_nav.external_nav_bridge:main",
         ],
     },
 )

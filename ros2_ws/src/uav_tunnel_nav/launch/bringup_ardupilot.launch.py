@@ -87,6 +87,11 @@ def generate_launch_description() -> LaunchDescription:
                 default_value="true" if sim_vehicle else "false",
                 description="Launch ArduPilot SITL (requires sim_vehicle.py).",
             ),
+            DeclareLaunchArgument(
+                "use_external_nav",
+                default_value="true",
+                description="Run external_nav_bridge (SLAM TF -> MAVLink VISION_POSITION_ESTIMATE).",
+            ),
 
             # ── Environment ──────────────────────────────────────────
             SetEnvironmentVariable("GZ_SIM_RESOURCE_PATH", resource_path),
@@ -184,8 +189,41 @@ def generate_launch_description() -> LaunchDescription:
                 package="tf2_ros",
                 executable="static_transform_publisher",
                 arguments=["0", "0", "0", "0", "0", "0", "1", "map", "odom"],
+                parameters=[{"use_sim_time": True}],
                 condition=UnlessCondition(LaunchConfiguration("use_slam")),
                 output="screen",
+            ),
+
+            # ── Static TF: odom -> base_link ─────────────────────────
+            # ArduPilot's DDS bridge is disabled, so nothing else
+            # publishes this transform.  SLAM Toolbox needs it to
+            # place incoming scans; scan matching handles the rest.
+            Node(
+                package="tf2_ros",
+                executable="static_transform_publisher",
+                name="odom_base_link_static_tf",
+                arguments=["0", "0", "0", "0", "0", "0", "1", "odom", "base_link"],
+                parameters=[{"use_sim_time": True}],
+                output="screen",
+            ),
+
+            # ── External nav bridge (SLAM TF -> MAVLink VPE) ─────────
+            Node(
+                package="uav_tunnel_nav",
+                executable="external_nav_bridge",
+                parameters=[
+                    {
+                        "use_sim_time": False,
+                        "connection": "tcp:127.0.0.1:5762",
+                        "publish_rate": 20.0,
+                        "map_frame": "map",
+                        "base_frame": "base_link",
+                        "pos_covariance": 0.1,
+                        "yaw_covariance": 0.05,
+                    }
+                ],
+                output="screen",
+                condition=IfCondition(LaunchConfiguration("use_external_nav")),
             ),
 
             # ── ArduPilot MAVLink control ─────────────────────────────
@@ -199,6 +237,8 @@ def generate_launch_description() -> LaunchDescription:
                         "target_altitude": 1.0,
                         "takeoff_speed": 0.5,
                         "cmd_vel_topic": "/cmd_vel",
+                        # Phase 2: GUIDED_NOGPS (20). Set to 4 for GPS-based GUIDED.
+                        "flight_mode": 20,
                     }
                 ],
                 output="screen",
