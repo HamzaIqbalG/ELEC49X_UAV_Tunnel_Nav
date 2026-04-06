@@ -1,17 +1,14 @@
 FROM osrf/ros:humble-desktop
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV ARDU_WS=/ardu_ws
-ENV ARDUPILOT_HOME=${ARDU_WS}/src/ardupilot
-ENV PATH=${ARDUPILOT_HOME}/Tools/autotest:/home/ardupilot/.local/bin:${PATH}
 
+# General dev / ROS workflow tooling (no ArduPilot/PX4 stack — see below)
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     curl \
     git \
     gnupg \
-    openjdk-17-jdk-headless \
     lsb-release \
     python3-colcon-common-extensions \
     python3-pip \
@@ -22,7 +19,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-RUN python3 -m pip install --no-cache-dir -U pip setuptools
+RUN if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then rosdep init; fi
 
 # Gazebo Fortress repository (OSRF)
 RUN curl -sSL https://packages.osrfoundation.org/gazebo.gpg \
@@ -31,7 +28,7 @@ RUN curl -sSL https://packages.osrfoundation.org/gazebo.gpg \
 http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" \
       > /etc/apt/sources.list.d/gazebo-stable.list
 
-# Core simulation packages (stable – changes here rebuild ArduPilot layers)
+# Core simulation packages (Gazebo Fortress + AS2; no ArduPilot SITL / PX4)
 RUN apt-get update && apt-get install -y \
     gz-fortress \
     libgz-sim7-dev \
@@ -42,43 +39,7 @@ RUN apt-get update && apt-get install -y \
     python3-tk \
     && rm -rf /var/lib/apt/lists/*
 
-RUN if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then rosdep init; fi
-
-RUN useradd -m -s /bin/bash ardupilot && \
-    echo "ardupilot ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ardupilot && \
-    chmod 0440 /etc/sudoers.d/ardupilot && \
-    mkdir -p ${ARDU_WS}/src && \
-    chown -R ardupilot:ardupilot ${ARDU_WS}
-
-USER ardupilot
-ENV USER=ardupilot
-ENV HOME=/home/ardupilot
-WORKDIR ${ARDU_WS}/src
-RUN curl -sSL https://raw.githubusercontent.com/ArduPilot/ardupilot/master/Tools/ros2/ros2.repos \
-      -o ros2.repos && \
-    vcs import --recursive < ros2.repos
-RUN git clone https://github.com/ArduPilot/Micro-XRCE-DDS-Gen.git ${ARDU_WS}/src/Micro-XRCE-DDS-Gen && \
-    /bin/bash -c "cd ${ARDU_WS}/src/Micro-XRCE-DDS-Gen && \
-    ./gradlew jar && \
-    ./gradlew install --install_path /home/ardupilot/.local && \
-    if [ ! -f /home/ardupilot/.local/share/microxrceddsgen/java/microxrceddsgen.jar ]; then \
-      mkdir -p /home/ardupilot/.local/share/microxrceddsgen/java && \
-      cp -f share/microxrcedds/microxrceddsgen.jar /home/ardupilot/.local/share/microxrceddsgen/java/microxrceddsgen.jar; \
-    fi"
-RUN /bin/bash -c "cd ${ARDUPILOT_HOME} && DO_AP_STM_ENV=0 Tools/environment_install/install-prereqs-ubuntu.sh -y"
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && \
-    sudo apt-get update && \
-    cd ${ARDU_WS} && \
-    rosdep update && \
-    rosdep install --rosdistro ${ROS_DISTRO} --from-paths src --ignore-src --skip-keys \"micro_ros_agent ardupilot_msgs\" -y && \
-    sudo rm -rf /var/lib/apt/lists/*"
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && \
-    cd ${ARDU_WS} && \
-    colcon build --cmake-args -DBUILD_TESTING=ON"
-
-USER root
-
-# Optional ROS packages (add/remove here without rebuilding ArduPilot)
+# Extra ROS packages for the tunnel demo (change here without rebuilding Gazebo layers above)
 RUN apt-get update && apt-get install -y \
     ros-humble-robot-localization \
     ros-humble-slam-toolbox \

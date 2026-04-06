@@ -1,0 +1,69 @@
+[0.463s] Invoking command in '/ros2_ws/src/uav_tunnel_nav': AMENT_PREFIX_PATH=/ros2_ws/install/uav_tunnel_gz:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/ros2_ws/install/uav_tunnel_gz LD_LIBRARY_PATH=/ros2_ws/install/uav_tunnel_gz/lib:${LD_LIBRARY_PATH} PYTHONPATH=/ros2_ws/build/uav_tunnel_nav/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/uav_tunnel_nav build --build-base /ros2_ws/build/uav_tunnel_nav/build install --record /ros2_ws/build/uav_tunnel_nav/install.log --single-version-externally-managed install_data
+[0.655s] running egg_info
+[0.668s] creating ../../build/uav_tunnel_nav/uav_tunnel_nav.egg-info
+[0.669s] writing ../../build/uav_tunnel_nav/uav_tunnel_nav.egg-info/PKG-INFO
+[0.670s] writing dependency_links to ../../build/uav_tunnel_nav/uav_tunnel_nav.egg-info/dependency_links.txt
+[0.670s] writing entry points to ../../build/uav_tunnel_nav/uav_tunnel_nav.egg-info/entry_points.txt
+[0.671s] writing requirements to ../../build/uav_tunnel_nav/uav_tunnel_nav.egg-info/requires.txt
+[0.671s] writing top-level names to ../../build/uav_tunnel_nav/uav_tunnel_nav.egg-info/top_level.txt
+[0.671s] writing manifest file '../../build/uav_tunnel_nav/uav_tunnel_nav.egg-info/SOURCES.txt'
+[0.696s] reading manifest file '../../build/uav_tunnel_nav/uav_tunnel_nav.egg-info/SOURCES.txt'
+[0.697s] writing manifest file '../../build/uav_tunnel_nav/uav_tunnel_nav.egg-info/SOURCES.txt'
+[0.698s] running build
+[0.698s] running build_py
+[0.698s] creating /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav
+[0.700s] copying uav_tunnel_nav/basic_odometry.py -> /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav
+[0.700s] copying uav_tunnel_nav/vio_watchdog.py -> /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav
+[0.700s] copying uav_tunnel_nav/baro_to_pose.py -> /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav
+[0.700s] copying uav_tunnel_nav/tunnel_navigator.py -> /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav
+[0.701s] copying uav_tunnel_nav/imu_reframe.py -> /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav
+[0.701s] copying uav_tunnel_nav/__init__.py -> /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav
+[0.701s] copying uav_tunnel_nav/mag_to_yaw.py -> /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav
+[0.701s] copying uav_tunnel_nav/gt_to_vio_odom.py -> /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav
+[0.702s] copying uav_tunnel_nav/scan_reframe.py -> /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav
+[0.702s] running install
+[0.706s] running install_lib
+[0.718s] creating /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav
+[0.719s] copying /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav/basic_odometry.py -> /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav
+[0.719s] copying /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav/vio_watchdog.py -> /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav
+[0.719s] copying /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav/baro_to_pose.py -> /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav
+[0.719s] copying /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav/tunnel_navigator.py -> /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav
+[0.719s] copying /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav/imu_reframe.py -> /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav
+[0.720s] copying /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav/__init__.py -> /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav
+[0.720s] copying /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav/mag_to_yaw.py -> /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav
+[0.720s] copying /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav/gt_to_vio_odom.py -> /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav
+[0.720s] copying /ros2_ws/build/uav_tunnel_nav/build/lib/uav_tunnel_nav/scan_reframe.py -> /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav
+[0.721s] byte-compiling /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav/basic_odometry.py to basic_odometry.cpython-310.pyc
+[0.724s] byte-compiling /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav/vio_watchdog.py to vio_watchdog.cpython-310.pyc
+[0.724s] byte-compiling /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav/baro_to_pose.py to baro_to_pose.cpython-310.pyc
+[0.725s] byte-compiling /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav/tunnel_navigator.py to tunnel_navigator.cpython-310.pyc
+[0.726s] byte-compiling /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav/imu_reframe.py to imu_reframe.cpython-310.pyc
+[0.726s] byte-compiling /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav/__init__.py to __init__.cpython-310.pyc
+[0.727s] byte-compiling /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav/mag_to_yaw.py to mag_to_yaw.cpython-310.pyc
+[0.727s] byte-compiling /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav/gt_to_vio_odom.py to gt_to_vio_odom.cpython-310.pyc
+[0.728s] byte-compiling /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav/scan_reframe.py to scan_reframe.cpython-310.pyc
+[0.729s] running install_data
+[0.729s] creating /ros2_ws/install/uav_tunnel_nav/share/ament_index/resource_index/packages
+[0.731s] copying resource/uav_tunnel_nav -> /ros2_ws/install/uav_tunnel_nav/share/ament_index/resource_index/packages
+[0.731s] copying package.xml -> /ros2_ws/install/uav_tunnel_nav/share/uav_tunnel_nav
+[0.731s] creating /ros2_ws/install/uav_tunnel_nav/share/uav_tunnel_nav/launch
+[0.732s] copying launch/bringup.launch.py -> /ros2_ws/install/uav_tunnel_nav/share/uav_tunnel_nav/launch
+[0.732s] copying launch/bringup_as2.launch.py -> /ros2_ws/install/uav_tunnel_nav/share/uav_tunnel_nav/launch
+[0.732s] creating /ros2_ws/install/uav_tunnel_nav/share/uav_tunnel_nav/config
+[0.733s] copying config/ekf.yaml -> /ros2_ws/install/uav_tunnel_nav/share/uav_tunnel_nav/config
+[0.733s] copying config/slam_toolbox.yaml -> /ros2_ws/install/uav_tunnel_nav/share/uav_tunnel_nav/config
+[0.733s] creating /ros2_ws/install/uav_tunnel_nav/share/uav_tunnel_nav/rviz
+[0.733s] copying rviz/uav_tunnel.rviz -> /ros2_ws/install/uav_tunnel_nav/share/uav_tunnel_nav/rviz
+[0.733s] running install_egg_info
+[0.746s] Copying ../../build/uav_tunnel_nav/uav_tunnel_nav.egg-info to /ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages/uav_tunnel_nav-0.1.0-py3.10.egg-info
+[0.747s] running install_scripts
+[0.767s] Installing baro_to_pose script to /ros2_ws/install/uav_tunnel_nav/lib/uav_tunnel_nav
+[0.768s] Installing basic_odometry script to /ros2_ws/install/uav_tunnel_nav/lib/uav_tunnel_nav
+[0.768s] Installing gt_to_vio_odom script to /ros2_ws/install/uav_tunnel_nav/lib/uav_tunnel_nav
+[0.768s] Installing imu_reframe script to /ros2_ws/install/uav_tunnel_nav/lib/uav_tunnel_nav
+[0.768s] Installing mag_to_yaw script to /ros2_ws/install/uav_tunnel_nav/lib/uav_tunnel_nav
+[0.769s] Installing scan_reframe script to /ros2_ws/install/uav_tunnel_nav/lib/uav_tunnel_nav
+[0.769s] Installing tunnel_navigator script to /ros2_ws/install/uav_tunnel_nav/lib/uav_tunnel_nav
+[0.769s] Installing vio_watchdog script to /ros2_ws/install/uav_tunnel_nav/lib/uav_tunnel_nav
+[0.770s] writing list of installed files to '/ros2_ws/build/uav_tunnel_nav/install.log'
+[0.791s] Invoked command in '/ros2_ws/src/uav_tunnel_nav' returned '0': AMENT_PREFIX_PATH=/ros2_ws/install/uav_tunnel_gz:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/ros2_ws/install/uav_tunnel_gz LD_LIBRARY_PATH=/ros2_ws/install/uav_tunnel_gz/lib:${LD_LIBRARY_PATH} PYTHONPATH=/ros2_ws/build/uav_tunnel_nav/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/ros2_ws/install/uav_tunnel_nav/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/uav_tunnel_nav build --build-base /ros2_ws/build/uav_tunnel_nav/build install --record /ros2_ws/build/uav_tunnel_nav/install.log --single-version-externally-managed install_data

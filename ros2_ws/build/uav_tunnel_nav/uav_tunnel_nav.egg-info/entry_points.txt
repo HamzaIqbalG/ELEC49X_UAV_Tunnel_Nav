@@ -1,0 +1,9 @@
+[console_scripts]
+baro_to_pose = uav_tunnel_nav.baro_to_pose:main
+basic_odometry = uav_tunnel_nav.basic_odometry:main
+gt_to_vio_odom = uav_tunnel_nav.gt_to_vio_odom:main
+imu_reframe = uav_tunnel_nav.imu_reframe:main
+mag_to_yaw = uav_tunnel_nav.mag_to_yaw:main
+scan_reframe = uav_tunnel_nav.scan_reframe:main
+tunnel_navigator = uav_tunnel_nav.tunnel_navigator:main
+vio_watchdog = uav_tunnel_nav.vio_watchdog:main

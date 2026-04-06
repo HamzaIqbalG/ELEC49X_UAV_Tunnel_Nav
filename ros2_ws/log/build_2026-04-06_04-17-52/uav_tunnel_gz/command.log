@@ -1,0 +1,4 @@
+Invoking command in '/ros2_ws/build/uav_tunnel_gz': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/ros2_ws/install/uav_tunnel_nav:/opt/ros/humble /usr/bin/cmake --build /ros2_ws/build/uav_tunnel_gz -- -j10 -l10
+Invoked command in '/ros2_ws/build/uav_tunnel_gz' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/ros2_ws/install/uav_tunnel_nav:/opt/ros/humble /usr/bin/cmake --build /ros2_ws/build/uav_tunnel_gz -- -j10 -l10
+Invoking command in '/ros2_ws/build/uav_tunnel_gz': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/ros2_ws/install/uav_tunnel_nav:/opt/ros/humble /usr/bin/cmake --install /ros2_ws/build/uav_tunnel_gz
+Invoked command in '/ros2_ws/build/uav_tunnel_gz' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/ros2_ws/install/uav_tunnel_nav:/opt/ros/humble /usr/bin/cmake --install /ros2_ws/build/uav_tunnel_gz

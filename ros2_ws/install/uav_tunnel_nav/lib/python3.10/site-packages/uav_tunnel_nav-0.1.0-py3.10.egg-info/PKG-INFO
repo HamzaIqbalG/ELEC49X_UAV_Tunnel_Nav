@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: uav_tunnel_nav
+Version: 0.1.0
+Summary: ROS 2 tunnel navigation for a Gazebo Fortress UAV demo.
+Maintainer: UAV Tunnel
+Maintainer-email: dev@example.com
+License: Apache-2.0
+Requires-Dist: setuptools
+Dynamic: license
+Dynamic: maintainer
+Dynamic: maintainer-email
+Dynamic: requires-dist
+Dynamic: summary

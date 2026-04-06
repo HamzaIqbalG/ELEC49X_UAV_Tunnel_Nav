@@ -1,0 +1,10 @@
+/ros2_ws/build/uav_tunnel_gz/CMakeFiles/uninstall.dir
+/ros2_ws/build/uav_tunnel_gz/CMakeFiles/uav_tunnel_gz_uninstall.dir
+/ros2_ws/build/uav_tunnel_gz/CMakeFiles/cmd_vel_plugin.dir
+/ros2_ws/build/uav_tunnel_gz/CMakeFiles/test.dir
+/ros2_ws/build/uav_tunnel_gz/CMakeFiles/edit_cache.dir
+/ros2_ws/build/uav_tunnel_gz/CMakeFiles/rebuild_cache.dir
+/ros2_ws/build/uav_tunnel_gz/CMakeFiles/list_install_components.dir
+/ros2_ws/build/uav_tunnel_gz/CMakeFiles/install.dir
+/ros2_ws/build/uav_tunnel_gz/CMakeFiles/install/local.dir
+/ros2_ws/build/uav_tunnel_gz/CMakeFiles/install/strip.dir
